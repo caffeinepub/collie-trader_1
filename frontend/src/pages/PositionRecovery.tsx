@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { TradeModality, TradeDirection, TradeStatus } from '../types/trade';
 import type { Trade, RecoveryStrategy } from '../types/trade';
 import type { PositionRisk } from '../types/binance';
 import { useTradeLifecycle } from '../hooks/useTradeLifecycle';
 import { useModalityMode } from '../hooks/useModalityMode';
-import { usePricePolling } from '../hooks/usePricePolling';
 import { generateRecoveryStrategies } from '../services/ai/positionRecoveryEngine';
 import { getPositionRisk } from '../services/binance/binanceAccountService';
 import { hasCredentials } from '../services/binance/binanceAuth';
@@ -20,6 +19,7 @@ interface RecoveryData {
   strategies: RecoveryStrategy[];
   initialLoss: number;
   currentLoss: number;
+  currentPrice: number;
   actions: Array<{ timestamp: number; strategyType: string; pnlBefore: number; pnlAfter: number }>;
 }
 
@@ -63,22 +63,25 @@ function positionRiskToTrade(pos: PositionRisk): Trade {
 export function PositionRecovery() {
   const { trades } = useTradeLifecycle();
   const { isLive } = useModalityMode();
+
+  // Stable state: only mutated by initial mount load or explicit Refresh click
   const [recoveryData, setRecoveryData] = useState<RecoveryData[]>([]);
   const [loading, setLoading] = useState(false);
   const [credentialsAvailable] = useState(() => hasCredentials());
 
-  const activeSymbols = Object.values(trades)
-    .filter(Boolean)
-    .map((t) => t!.symbol);
-
-  const { prices } = usePricePolling(activeSymbols, 5000);
+  // Guard to prevent the mount effect from running more than once
+  const mountedRef = useRef(false);
 
   /**
    * Core recovery analysis: given a list of Trade objects and a price map,
    * filter those with >20% unrealized loss and generate recovery strategies.
+   * Returns both the RecoveryData array and the price map used.
    */
   const analyzePositions = useCallback(
-    async (tradesToAnalyze: Trade[], priceMap: Record<string, number>): Promise<RecoveryData[]> => {
+    async (
+      tradesToAnalyze: Trade[],
+      priceMap: Record<string, number>
+    ): Promise<RecoveryData[]> => {
       const results: RecoveryData[] = [];
 
       for (const trade of tradesToAnalyze) {
@@ -101,6 +104,7 @@ export function PositionRecovery() {
           strategies,
           initialLoss: pnlUsdt,
           currentLoss: pnlUsdt,
+          currentPrice,
           actions: [],
         });
       }
@@ -111,87 +115,105 @@ export function PositionRecovery() {
   );
 
   /**
-   * Full refresh: fetch live Binance positions + merge with local AI trades,
-   * then re-run positionRecoveryEngine on all of them.
+   * Shared fetch-and-analyze logic used by both initial mount and Refresh button.
+   * Fetches live Binance positions, merges with local AI trades, runs analysis,
+   * and stores results in stable state.
    */
-  const handleRefresh = useCallback(async () => {
-    if (!credentialsAvailable) {
-      toast.warning('Binance API credentials not configured. Go to Settings to add your API key and secret.');
-      return;
-    }
+  const fetchAndAnalyze = useCallback(
+    async (isManualRefresh = false) => {
+      if (!credentialsAvailable) {
+        if (isManualRefresh) {
+          toast.warning(
+            'Binance API credentials not configured. Go to Settings to add your API key and secret.'
+          );
+        }
+        return;
+      }
 
-    setLoading(true);
+      setLoading(true);
 
-    try {
-      // 1. Fetch live positions from Binance /fapi/v2/positionRisk
-      let binancePositions: PositionRisk[] = [];
       try {
-        binancePositions = await getPositionRisk();
+        // 1. Fetch live positions from Binance /fapi/v2/positionRisk
+        let binancePositions: PositionRisk[] = [];
+        try {
+          binancePositions = await getPositionRisk();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Unknown error';
+          if (isManualRefresh) {
+            toast.error(`Failed to fetch Binance positions: ${msg}`);
+          }
+          setLoading(false);
+          return;
+        }
+
+        // 2. Convert Binance positions to Trade objects
+        const binanceTrades: Trade[] = binancePositions.map(positionRiskToTrade);
+
+        // 3. Merge with local AI trades (avoid duplicates by symbol)
+        const localTrades = Object.values(trades).filter(Boolean) as Trade[];
+        const binanceSymbols = new Set(binanceTrades.map((t) => t.symbol));
+        const uniqueLocalTrades = localTrades.filter((t) => !binanceSymbols.has(t.symbol));
+        const allTrades = [...binanceTrades, ...uniqueLocalTrades];
+
+        if (allTrades.length === 0) {
+          if (isManualRefresh) {
+            toast.info('No open positions found on Binance.');
+          }
+          setRecoveryData([]);
+          setLoading(false);
+          return;
+        }
+
+        // 4. Build a price map using markPrice from Binance positions (most accurate)
+        const priceMap: Record<string, number> = {};
+        for (const pos of binancePositions) {
+          const mp = parseFloat(pos.markPrice);
+          if (mp > 0) priceMap[pos.symbol] = mp;
+        }
+
+        // 5. Re-run positionRecoveryEngine on all positions
+        const results = await analyzePositions(allTrades, priceMap);
+
+        // Stable update: set once, never overwritten by polling
+        setRecoveryData(results);
+
+        if (isManualRefresh) {
+          if (results.length === 0) {
+            toast.success('Refresh complete — no positions with loss > 20% detected.');
+          } else {
+            toast.warning(`${results.length} position(s) in deep loss detected.`);
+          }
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unknown error';
-        toast.error(`Failed to fetch Binance positions: ${msg}`);
+        if (isManualRefresh) {
+          toast.error(`Refresh failed: ${msg}`);
+        }
+      } finally {
         setLoading(false);
-        return;
       }
-
-      // 2. Convert Binance positions to Trade objects
-      const binanceTrades: Trade[] = binancePositions.map(positionRiskToTrade);
-
-      // 3. Merge with local AI trades (avoid duplicates by symbol)
-      const localTrades = Object.values(trades).filter(Boolean) as Trade[];
-      const binanceSymbols = new Set(binanceTrades.map((t) => t.symbol));
-      const uniqueLocalTrades = localTrades.filter((t) => !binanceSymbols.has(t.symbol));
-      const allTrades = [...binanceTrades, ...uniqueLocalTrades];
-
-      if (allTrades.length === 0) {
-        toast.info('No open positions found on Binance.');
-        setRecoveryData([]);
-        setLoading(false);
-        return;
-      }
-
-      // 4. Build a price map: use markPrice from Binance positions when available,
-      //    fall back to the polled prices for local trades
-      const priceMap: Record<string, number> = { ...prices };
-      for (const pos of binancePositions) {
-        const mp = parseFloat(pos.markPrice);
-        if (mp > 0) priceMap[pos.symbol] = mp;
-      }
-
-      // 5. Re-run positionRecoveryEngine on all positions
-      const results = await analyzePositions(allTrades, priceMap);
-
-      setRecoveryData(results);
-
-      if (results.length === 0) {
-        toast.success('Refresh complete — no positions with loss > 20% detected.');
-      } else {
-        toast.warning(`${results.length} position(s) in deep loss detected.`);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(`Refresh failed: ${msg}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [credentialsAvailable, trades, prices, analyzePositions]);
+    },
+    // NOTE: `trades` is intentionally NOT in the dependency array here because
+    // we snapshot it at call time. The ref guard prevents re-runs from re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [credentialsAvailable, analyzePositions]
+  );
 
   /**
-   * Initial load on mount: use only local trades + polled prices (no Binance call).
-   * The user can click Refresh to pull live data from Binance.
+   * Initial load on mount — runs exactly once.
+   * Uses the same fetchAndAnalyze logic as the Refresh button.
    */
   useEffect(() => {
-    const localTrades = Object.values(trades).filter(Boolean) as Trade[];
-    if (localTrades.length > 0 && Object.keys(prices).length > 0) {
-      (async () => {
-        setLoading(true);
-        const results = await analyzePositions(localTrades, prices);
-        setRecoveryData(results);
-        setLoading(false);
-      })();
-    }
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+    fetchAndAnalyze(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prices]);
+  }, []);
+
+  /** Manual Refresh button handler */
+  const handleRefresh = useCallback(() => {
+    fetchAndAnalyze(true);
+  }, [fetchAndAnalyze]);
 
   const handleExecuteStrategy = (tradeId: string, strategy: RecoveryStrategy) => {
     const rd = recoveryData.find((r) => r.trade.id === tradeId);
@@ -241,7 +263,8 @@ export function PositionRecovery() {
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="left" className="max-w-xs text-xs">
-                  Binance API key and secret are required to fetch live positions. Configure them in Settings.
+                  Binance API key and secret are required to fetch live positions. Configure them in
+                  Settings.
                 </TooltipContent>
               </Tooltip>
             )}
@@ -296,7 +319,7 @@ export function PositionRecovery() {
               <div key={rd.trade.id} className="space-y-3">
                 <RecoveryPositionCard
                   trade={rd.trade}
-                  currentPrice={prices[rd.trade.symbol] || rd.trade.entry}
+                  currentPrice={rd.currentPrice}
                   strategies={rd.strategies}
                   onExecute={(strategy) => handleExecuteStrategy(rd.trade.id, strategy)}
                   isLive={isLive(rd.trade.modality as TradeModality)}

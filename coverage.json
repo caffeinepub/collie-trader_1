@@ -1,18 +1,29 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T20:34:41.726Z",
+  "generatedAt": "2026-02-25T20:53:21.917Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
-        "id": "REQ-46",
-        "summary": "In `frontend/src/pages/PositionRecovery.tsx`, wire the Refresh button to a real async action that: (1) calls `getPositionRisk()` from `binanceAccountService.ts` to fetch live position data from `GET https://fapi.binance.com/fapi/v2/positionRisk`; (2) re-executes the `positionRecoveryEngine` logic against the freshly fetched positions to detect those with unrealized loss exceeding 20%; (3) updates the displayed list of deeply negative positions with the new results; and (4) shows a loading spinner or disabled state on the Refresh button while the operation is in progress, restoring to normal after completion or on error.",
+        "id": "REQ-47",
+        "summary": "In `frontend/src/pages/PositionRecovery.tsx`, decouple the detected deeply-negative positions state from any automatic polling or periodic re-fetch cycle. The list of positions detected by `positionRecoveryEngine` must be stored in a dedicated local React state variable that is only updated when: (a) the page first mounts (initial load), or (b) the user explicitly clicks the Refresh button. Any background polling (e.g., price polling, Dashboard re-renders, or shared state updates) must NOT clear, overwrite, or trigger a re-evaluation of this state. The displayed list must remain stable until the user manually triggers a refresh.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/PositionRecovery.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/PositionRecovery.tsx"
+        ]
+      },
+      {
+        "id": "REQ-48",
+        "summary": "In `frontend/src/pages/PositionRecovery.tsx`, ensure the initial load of positions (on mount) also calls `getPositionRisk()` from `binanceAccountService.ts` to fetch live data and runs `positionRecoveryEngine` against it — storing the result in stable local state using `useState` initialized to an empty array and populated only once via a `useEffect` with an empty dependency array (or a dedicated load function). Do not derive recovery positions from props, shared context, or any reactive state that changes on every render cycle.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/pages/PositionRecovery.tsx"

@@ -1,11 +1,11 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T20:34:41.722Z",
-  "summary": "The diff modifies `frontend/src/pages/PositionRecovery.tsx` to wire the Refresh button to a real async action. The implementation imports `getPositionRisk` from `binanceAccountService.ts`, imports `hasCredentials` from `binanceAuth.ts`, uses `generateRecoveryStrategies` from `positionRecoveryEngine`, adds loading state, credentials checking, error toast handling, and a `positionRiskToTrade` converter. The file summary confirms: loading spinner, credentials warning tooltip, error toast handling, and fetching via `getPositionRisk()` on Refresh. All major acceptance criteria appear to be addressed.",
+  "generatedAt": "2026-02-25T20:53:21.913Z",
+  "summary": "The diff shows modifications to frontend/src/pages/PositionRecovery.tsx that implement stable local state management for recovery positions. The file summary confirms: a useRef mount guard ensures initial fetch runs exactly once, recoveryData state is only mutated by the mount load or explicit Refresh button click, and currentPrice is stored per position snapshot to avoid dependency on external price state. This aligns well with both REQ-47 and REQ-48. The diff content is truncated but shows the key patterns: useState([]) initialization, useRef mount guard, useCallback for analyzePositions, and import of getPositionRisk from binanceAccountService.",
   "missing_requirements": [],
   "hallucinated_features": [],
-  "confidence": 0.88,
+  "confidence": 0.82,
   "changed_files": [
     "frontend-file-summaries.txt",
     "frontend/src/pages/PositionRecovery.tsx",

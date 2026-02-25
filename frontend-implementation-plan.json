@@ -1,24 +1,40 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix Position Recovery Refresh Button — Wire to Binance API + positionRecoveryEngine",
+  "title": "Fix Position Recovery tab: stabilize detected positions to prevent flicker and spontaneous disappearance",
   "requirements": [
     {
-      "id": "REQ-46",
-      "summary": "Wire the Refresh button in PositionRecovery.tsx to fetch live position data from Binance, re-execute positionRecoveryEngine logic to detect positions with unrealized loss exceeding 20%, update the displayed list, and show loading state during the operation",
+      "id": "REQ-47",
+      "summary": "Decouple detected deeply-negative positions state from automatic polling or periodic re-fetch cycles",
       "acceptanceCriteria": [
-        "Clicking the Refresh button triggers a real HTTP call to `GET /fapi/v2/positionRisk` via `getPositionRisk()` from `binanceAccountService.ts`.",
-        "While the fetch is in progress, the Refresh button shows a loading spinner and is disabled to prevent duplicate requests.",
-        "After the fetch completes, `positionRecoveryEngine` is re-executed with the new position data and the displayed list of recovery candidates is updated.",
-        "Positions with unrealized loss greater than 20% appear in the list after refresh.",
-        "If the fetch fails (e.g., no credentials, network error), an error message is shown and the Refresh button returns to its normal state.",
-        "If credentials are not configured (no API key/secret in localStorage), the Refresh button either shows a warning or is disabled with a tooltip explaining that credentials are required."
+        "When real Binance positions with >20% unrealized loss are detected on page mount, they remain visible in the Position Recovery tab without flickering or disappearing.",
+        "Spontaneous re-renders (e.g., caused by price polling from Dashboard or shared context updates) do not clear or reset the list of detected recovery positions.",
+        "The detected positions list only changes when the user clicks the Refresh button.",
+        "After clicking Refresh, the button shows a loading/disabled state while fetching, then restores to normal — and the new results are stably displayed.",
+        "If no positions meet the >20% loss threshold, a stable 'No positions in critical loss' empty state is shown (not a flickering blank)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/PositionRecovery.tsx",
           "operation": "modify",
-          "description": "Add async refresh handler that: (1) checks if Binance credentials exist in localStorage via binanceAuth.ts helpers; (2) sets loading state and disables the Refresh button; (3) calls getPositionRisk() from binanceAccountService.ts to fetch live position data from GET /fapi/v2/positionRisk using authenticatedFetch; (4) filters positions with unrealized loss exceeding 20%; (5) for each deeply negative position, re-executes positionRecoveryEngine logic to generate recovery strategies; (6) updates the displayed list of recovery candidates with the fresh results; (7) clears loading state and re-enables the Refresh button; (8) displays error toast if the fetch fails or credentials are missing. Ensure the button shows a loading spinner icon while the operation is in progress."
+          "description": "Introduce a dedicated local React state variable using useState to hold the detected recovery positions array, initialized to an empty array. Remove any reactive dependencies or derived computations that automatically update this state based on props, shared context, or polling cycles. Ensure the state is only mutated via two explicit actions: (1) initial page mount load, and (2) user-triggered Refresh button click. Add a loading state to control the Refresh button's disabled/loading indicator. Preserve all existing UI rendering logic including RecoveryPositionCard and RecoveryProgressTracker components."
+        }
+      ]
+    },
+    {
+      "id": "REQ-48",
+      "summary": "Ensure initial load of positions on mount calls getPositionRisk and stores results in stable local state",
+      "acceptanceCriteria": [
+        "On first render of the Position Recovery page, getPositionRisk() is called once and the results are processed by positionRecoveryEngine.",
+        "The recovery positions state is initialized with useState([]) and only mutated via the initial load and explicit Refresh action.",
+        "No reactive dependency (price map, shared trade state, etc.) causes the recovery positions to be re-computed or cleared automatically.",
+        "The page displays the stable list of detected positions without any flicker on initial load or during background activity in other tabs/components."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/PositionRecovery.tsx",
+          "operation": "modify",
+          "description": "Implement a useEffect hook with an empty dependency array that runs only on component mount. Inside this effect, call getPositionRisk() from binanceAccountService.ts to fetch live Binance position data, then pass the results to positionRecoveryEngine to identify positions with >20% unrealized loss, and store the output in the stable useState recovery positions array. Ensure this logic is duplicated in the Refresh button handler so both initial load and manual refresh follow the same data flow. Do not derive recovery positions from any reactive state variables (price map, shared trade context, or props). Confirm that no other useEffect or reactive computation can overwrite or clear this state."
         }
       ]
     }

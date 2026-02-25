@@ -1,46 +1,62 @@
 {
   "kind": "build_request",
-  "title": "Fix Position Recovery Refresh Button — Wire to Binance API + positionRecoveryEngine",
+  "title": "Fix Position Recovery tab: stabilize detected positions to prevent flicker and spontaneous disappearance",
   "projectName": "Collie Trader",
-  "priority": "normal",
+  "priority": "high",
   "requirements": [
     {
-      "id": "REQ-46",
-      "text": "In `frontend/src/pages/PositionRecovery.tsx`, wire the Refresh button to a real async action that: (1) calls `getPositionRisk()` from `binanceAccountService.ts` to fetch live position data from `GET https://fapi.binance.com/fapi/v2/positionRisk`; (2) re-executes the `positionRecoveryEngine` logic against the freshly fetched positions to detect those with unrealized loss exceeding 20%; (3) updates the displayed list of deeply negative positions with the new results; and (4) shows a loading spinner or disabled state on the Refresh button while the operation is in progress, restoring to normal after completion or on error.",
+      "id": "REQ-47",
+      "text": "In `frontend/src/pages/PositionRecovery.tsx`, decouple the detected deeply-negative positions state from any automatic polling or periodic re-fetch cycle. The list of positions detected by `positionRecoveryEngine` must be stored in a dedicated local React state variable that is only updated when: (a) the page first mounts (initial load), or (b) the user explicitly clicks the Refresh button. Any background polling (e.g., price polling, Dashboard re-renders, or shared state updates) must NOT clear, overwrite, or trigger a re-evaluation of this state. The displayed list must remain stable until the user manually triggers a refresh.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-recent-1",
-          "msg-recent-2",
-          "msg-recent-3"
+          "msg-latest"
         ],
         "quotes": [
-          "Verifique se ao clicar no botao 'refresh' uma ordem realmente é enviada a area correspondente",
-          "Rebuscar as posições da Binance via GET /fapi/v2/positionRisk",
-          "Re-executar o positionRecoveryEngine para detectar posições em perda significativa",
-          "Mostrar um spinner/loading durante o processo"
+          "tmbm espontânea",
+          "Sim posição real",
+          "O ativo pisca e desaparece tanto espontaneamente quanto após o Refresh — indicando que há algum processo periódico (polling, re-render ou re-fetch automático) zerando ou sobrescrevendo o estado das posições"
         ]
       },
       "acceptanceCriteria": [
-        "Clicking the Refresh button triggers a real HTTP call to `GET /fapi/v2/positionRisk` via `getPositionRisk()` from `binanceAccountService.ts`.",
-        "While the fetch is in progress, the Refresh button shows a loading spinner and is disabled to prevent duplicate requests.",
-        "After the fetch completes, `positionRecoveryEngine` is re-executed with the new position data and the displayed list of recovery candidates is updated.",
-        "Positions with unrealized loss greater than 20% appear in the list after refresh.",
-        "If the fetch fails (e.g., no credentials, network error), an error message is shown and the Refresh button returns to its normal state.",
-        "If credentials are not configured (no API key/secret in localStorage), the Refresh button either shows a warning or is disabled with a tooltip explaining that credentials are required."
+        "When real Binance positions with >20% unrealized loss are detected on page mount, they remain visible in the Position Recovery tab without flickering or disappearing.",
+        "Spontaneous re-renders (e.g., caused by price polling from Dashboard or shared context updates) do not clear or reset the list of detected recovery positions.",
+        "The detected positions list only changes when the user clicks the Refresh button.",
+        "After clicking Refresh, the button shows a loading/disabled state while fetching, then restores to normal — and the new results are stably displayed.",
+        "If no positions meet the >20% loss threshold, a stable 'No positions in critical loss' empty state is shown (not a flickering blank)."
+      ]
+    },
+    {
+      "id": "REQ-48",
+      "text": "In `frontend/src/pages/PositionRecovery.tsx`, ensure the initial load of positions (on mount) also calls `getPositionRisk()` from `binanceAccountService.ts` to fetch live data and runs `positionRecoveryEngine` against it — storing the result in stable local state using `useState` initialized to an empty array and populated only once via a `useEffect` with an empty dependency array (or a dedicated load function). Do not derive recovery positions from props, shared context, or any reactive state that changes on every render cycle.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "Sim posição real",
+          "tmbm espontânea"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On first render of the Position Recovery page, `getPositionRisk()` is called once and the results are processed by `positionRecoveryEngine`.",
+        "The recovery positions state is initialized with `useState([])` and only mutated via the initial load and explicit Refresh action.",
+        "No reactive dependency (price map, shared trade state, etc.) causes the recovery positions to be re-computed or cleared automatically.",
+        "The page displays the stable list of detected positions without any flicker on initial load or during background activity in other tabs/components."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files listed under frontend.immutablePaths.",
-    "Credentials must never be sent to any backend — all Binance API calls remain client-side.",
-    "All authenticated Binance calls must use `authenticatedFetch` from `binanceAuth.ts` (no direct fetch to Binance URLs bypassing it)."
+    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Do not change the positionRecoveryEngine.ts logic — only fix the state management in PositionRecovery.tsx.",
+    "Do not remove the Refresh button functionality implemented in the previous version."
   ],
   "nonGoals": [
-    "Do not change the recovery strategy logic inside `positionRecoveryEngine.ts`.",
-    "Do not change the detection threshold (20% loss) unless explicitly requested.",
-    "Do not modify any other tabs or pages.",
-    "Do not add new recovery strategy types."
+    "Changing the recovery strategy generation logic in positionRecoveryEngine.ts.",
+    "Modifying Dashboard.tsx or any other page to fix this issue.",
+    "Adding real-time/streaming updates to the Position Recovery tab.",
+    "Changing how getPositionRisk() works in binanceAccountService.ts."
   ],
   "imageRequirements": {
     "required": [],

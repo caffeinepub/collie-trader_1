@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 23,
+  "projectStateVersion": 25,
   "summary": "Collie Trader — PWA profissional de trading de criptomoedas (React + TypeScript, frontend-only). Integração direta com Binance Futures API (sem backend próprio). 4 modalidades simultâneas: Scalping, Day Trade, Swing e Position. Cada modalidade tem 1 trade ativo por vez com TP1/TP2/TP3 e Stop Loss, chave individual para modo Simulado ou Live. Novo trade abre apenas após encerramento do anterior. Suporte a reversão de posição e fechamento antecipado. Estatísticas de accuracy/precision persistidas em localStorage. Aba dedicada para recuperação de posições muito negativas. Credenciais Binance armazenadas em localStorage com assinatura HMAC-SHA256. O algoritmo de IA seleciona automaticamente os melhores pares USDⓈ-M Perpetual da Binance combinando dois pilares: (1) SMC — BOS, FVG, Order Blocks, CHoCH, Breaker Blocks, Liquidity Sweeps; (2) 8 Módulos dos Fundamentos — Volume/Fluxo de Capital, Price Action, Candlesticks, Padrões Gráficos, Psicologia de Mercado, Estratégias por Modalidade e Gestão de Risco. O pairScoringEngine.ts será reintroduzido com scoring combinado SMC + 8 módulos. O aiTradeSelection.ts usará generateTradeSetup(modality) sem símbolo fixo. Dashboard terá indicador animado 'Scanning market...' e tooltip 'Pair Selection Rationale' com top 3 fatores.",
   "architectural_notes": [
     "Frontend-only React + TypeScript PWA — sem backend próprio",
@@ -13,7 +13,7 @@
     "pairScoringEngine.ts combina dois pilares: SMC (BOS, FVG, Order Blocks, CHoCH, Breaker Blocks, Liquidity Sweeps) + 8 Módulos dos Fundamentos (Volume, Price Action, Candlesticks, Padrões Gráficos, Psicologia, Estratégias, Gestão de Risco)"
   ],
   "known_issues": [
-    "Position Recovery tab: Refresh button may not be connected to actual data fetch — suspected to be non-functional (not calling /fapi/v2/positionRisk or re-executing positionRecoveryEngine)"
+    "Position Recovery tab: detected real Binance positions (from /fapi/v2/positionRisk) flicker and disappear both after Refresh and spontaneously — likely caused by automatic polling or re-renders overwriting/clearing the positionRecoveryEngine state"
   ],
   "isFixRequest": true,
   "existing_features": [
@@ -352,6 +352,22 @@
         "REQ-46"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-in-frontend-src-pages-positionrecovery-tsx-decouple-the-detected-deeply-negative-positions-state-from-any-automatic-polling-or-periodic-re-fetch-cycle-the-list-of-positions-detected-by-positionrecoveryengine-must-be-stored-in-a-dedicated-local-react-state-variable-that-is-only-updated-when-a-the-page-first-mounts-initial-load-or-b-the-user-explicitly-clicks-the-refresh-button-any-background-polling-e-g-price-polling-dashboard-re-renders-or-shared-state-updates-must-not-clear-overwrite-or-trigger-a-re-evaluation-of-this-state-the-displayed-list-must-remain-stable-until-the-user-manually-triggers-a-refresh",
+      "title": "In `frontend/src/pages/PositionRecovery.tsx`, decouple the detected deeply-negative positions state from any automatic polling or periodic re-fetch cycle. The list of positions detected by `positionRecoveryEngine` must be stored in a dedicated local React state variable that is only updated when: (a) the page first mounts (initial load), or (b) the user explicitly clicks the Refresh button. Any background polling (e.g., price polling, Dashboard re-renders, or shared state updates) must NOT clear, overwrite, or trigger a re-evaluation of this state. The displayed list must remain stable until the user manually triggers a refresh.",
+      "reqIds": [
+        "REQ-47"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-frontend-src-pages-positionrecovery-tsx-ensure-the-initial-load-of-positions-on-mount-also-calls-getpositionrisk-from-binanceaccountservice-ts-to-fetch-live-data-and-runs-positionrecoveryengine-against-it-storing-the-result-in-stable-local-state-using-usestate-initialized-to-an-empty-array-and-populated-only-once-via-a-useeffect-with-an-empty-dependency-array-or-a-dedicated-load-function-do-not-derive-recovery-positions-from-props-shared-context-or-any-reactive-state-that-changes-on-every-render-cycle",
+      "title": "In `frontend/src/pages/PositionRecovery.tsx`, ensure the initial load of positions (on mount) also calls `getPositionRisk()` from `binanceAccountService.ts` to fetch live data and runs `positionRecoveryEngine` against it — storing the result in stable local state using `useState` initialized to an empty array and populated only once via a `useEffect` with an empty dependency array (or a dedicated load function). Do not derive recovery positions from props, shared context, or any reactive state that changes on every render cycle.",
+      "reqIds": [
+        "REQ-48"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -432,12 +448,6 @@
     {
       "id": "AR-15",
       "summary": "Restaurar no Dashboard o indicador animado 'Scanning market...' e o tooltip 'Pair Selection Rationale' com top 3 fatores de scoring",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-16",
-      "summary": "Corrigir aba Position Recovery: botão Refresh deve rebuscar posições da Binance via GET /fapi/v2/positionRisk, re-executar positionRecoveryEngine para detectar posições em perda, e exibir spinner/loading durante o processo",
       "reqIds": [],
       "status": "pending"
     }
