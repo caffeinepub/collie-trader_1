@@ -1,0 +1,32 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Fix Test Connection CORS proxy routing in useCredentials.ts",
+  "requirements": [
+    {
+      "id": "REQ-20",
+      "summary": "Fix the 'Test Connection' flow in useCredentials.ts to route the account info call exclusively through the single CORS proxy defined in corsConfig.ts, using getAccountInfo from binanceAccountService.ts instead of direct fetch, while maintaining client-side HMAC-SHA256 signature generation",
+      "acceptanceCriteria": [
+        "Clicking 'Test Connection' in Settings triggers a call to `GET /fapi/v2/account` routed through `CORS_PROXY_URL` from `corsConfig.ts`.",
+        "The call uses `getAccountInfo` from `binanceAccountService.ts` or `authenticatedFetch` from `binanceAuth.ts` — no direct fetch to `fapi.binance.com`.",
+        "The HMAC-SHA256 signature is generated client-side before the request is sent.",
+        "No secondary or fallback proxy is introduced — only `corsproxy.io/?` via `corsConfig.ts`.",
+        "On success, the Settings page displays the account balance returned by the API.",
+        "On failure (network error, auth error, proxy error), a clear human-readable error message is displayed — not 'Failed to fetch'.",
+        "No other pages or flows are affected by this change."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useCredentials.ts",
+          "operation": "modify",
+          "description": "Replace the direct fetch call to `https://fapi.binance.com/fapi/v2/account` in the testConnection function with a call to `getAccountInfo()` from binanceAccountService.ts. Remove the manual URL construction, timestamp generation, signature generation, and fetch logic from this hook. The getAccountInfo function already handles routing through CORS_PROXY_URL from corsConfig.ts and performs client-side HMAC-SHA256 signing. Update error handling to catch and parse error responses, providing clear human-readable error messages (e.g., 'Invalid API credentials', 'Network error', 'Proxy error') instead of generic 'Failed to fetch'. On success, extract and return the account balance from the response to display in Settings."
+        },
+        {
+          "path": "frontend/src/pages/Settings.tsx",
+          "operation": "modify",
+          "description": "Update the test connection success handler to display the account balance returned by the testConnection hook. Ensure the error message display area shows the improved human-readable error messages from useCredentials.ts. No changes to the UI structure are needed — only update the data binding for success/error states."
+        }
+      ]
+    }
+  ]
+}

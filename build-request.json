@@ -1,0 +1,49 @@
+{
+  "kind": "build_request",
+  "title": "Fix Test Connection CORS proxy routing in useCredentials.ts",
+  "projectName": "Collie Trader",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-20",
+      "text": "Fix the 'Test Connection' flow in `frontend/src/hooks/useCredentials.ts` so that the `GET https://fapi.binance.com/fapi/v2/account` call is routed exclusively through the single CORS proxy defined in `frontend/src/services/binance/corsConfig.ts` (`CORS_PROXY_URL`, value: `'https://corsproxy.io/?'`). The call must use `getAccountInfo` from `binanceAccountService.ts` (or `authenticatedFetch` from `binanceAuth.ts`) — never a direct fetch to the Binance URL. The HMAC-SHA256 signature must still be generated in the browser before the request is dispatched. Do not add any fallback proxy or retry logic — use only the single proxy defined in `corsConfig.ts`. On success, display the account balance; on failure, display a clear error message.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2",
+          "msg-3"
+        ],
+        "quotes": [
+          "No teste connection... novamente.",
+          "melhor tentarmos apenas um por enquanto , pq caso nao funcione. Duplicaremos o problema"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Clicking 'Test Connection' in Settings triggers a call to `GET /fapi/v2/account` routed through `CORS_PROXY_URL` from `corsConfig.ts`.",
+        "The call uses `getAccountInfo` from `binanceAccountService.ts` or `authenticatedFetch` from `binanceAuth.ts` — no direct fetch to `fapi.binance.com`.",
+        "The HMAC-SHA256 signature is generated client-side before the request is sent.",
+        "No secondary or fallback proxy is introduced — only `corsproxy.io/?` via `corsConfig.ts`.",
+        "On success, the Settings page displays the account balance returned by the API.",
+        "On failure (network error, auth error, proxy error), a clear human-readable error message is displayed — not 'Failed to fetch'.",
+        "No other pages or flows are affected by this change."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not add any fallback proxy logic — use only the single CORS_PROXY_URL defined in corsConfig.ts.",
+    "Do not change corsConfig.ts CORS_PROXY_URL value.",
+    "Do not modify binanceAuth.ts, binancePublicApi.ts, or binanceAccountService.ts proxy routing — only fix useCredentials.ts (and Settings.tsx if needed).",
+    "HMAC-SHA256 signature must continue to be generated in the browser, never on the backend."
+  ],
+  "nonGoals": [
+    "Adding retry logic or multiple proxy fallbacks.",
+    "Fixing CORS issues on Dashboard, AI Insights, or any other page.",
+    "Changing how Live Trading orders (POST/DELETE) are proxied.",
+    "Modifying any backend Motoko code."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

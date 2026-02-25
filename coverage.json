@@ -1,0 +1,40 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-25T18:35:33.741Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 1,
+    "implemented": 1,
+    "items": [
+      {
+        "id": "REQ-20",
+        "summary": "Fix the 'Test Connection' flow in `frontend/src/hooks/useCredentials.ts` so that the `GET https://fapi.binance.com/fapi/v2/account` call is routed exclusively through the single CORS proxy defined in `frontend/src/services/binance/corsConfig.ts` (`CORS_PROXY_URL`, value: `'https://corsproxy.io/?'`). The call must use `getAccountInfo` from `binanceAccountService.ts` (or `authenticatedFetch` from `binanceAuth.ts`) — never a direct fetch to the Binance URL. The HMAC-SHA256 signature must still be generated in the browser before the request is dispatched. Do not add any fallback proxy or retry logic — use only the single proxy defined in `corsConfig.ts`. On success, display the account balance; on failure, display a clear error message.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useCredentials.ts",
+          "frontend/src/pages/Settings.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useCredentials.ts",
+          "frontend/src/pages/Settings.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/hooks/useCredentials.ts",
+    "frontend/src/pages/Settings.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

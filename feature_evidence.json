@@ -1,0 +1,24 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-fix-the-test-connection-flow-in-frontend-src-hooks-usecredentials-ts-so-that-the-get-https-fapi-binance-com-fapi-v2-account-call-is-routed-exclusively-through-the-single-cors-proxy-defined-in-frontend-src-services-binance-corsconfig-ts-cors-proxy-url-value-https-corsproxy-io-the-call-must-use-getaccountinfo-from-binanceaccountservice-ts-or-authenticatedfetch-from-binanceauth-ts-never-a-direct-fetch-to-the-binance-url-the-hmac-sha256-signature-must-still-be-generated-in-the-browser-before-the-request-is-dispatched-do-not-add-any-fallback-proxy-or-retry-logic-use-only-the-single-proxy-defined-in-corsconfig-ts-on-success-display-the-account-balance-on-failure-display-a-clear-error-message",
+      "featureTitle": "Fix the 'Test Connection' flow in `frontend/src/hooks/useCredentials.ts` so that the `GET https://fapi.binance.com/fapi/v2/account` call is routed exclusively through the single CORS proxy defined in `frontend/src/services/binance/corsConfig.ts` (`CORS_PROXY_URL`, value: `'https://corsproxy.io/?'`). The call must use `getAccountInfo` from `binanceAccountService.ts` (or `authenticatedFetch` from `binanceAuth.ts`) — never a direct fetch to the Binance URL. The HMAC-SHA256 signature must still be generated in the browser before the request is dispatched. Do not add any fallback proxy or retry logic — use only the single proxy defined in `corsConfig.ts`. On success, display the account balance; on failure, display a clear error message.",
+      "files": [
+        "frontend/src/hooks/useCredentials.ts",
+        "frontend/src/pages/Settings.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-20"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

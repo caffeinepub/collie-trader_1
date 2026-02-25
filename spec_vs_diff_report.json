@@ -1,0 +1,23 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-25T18:35:33.738Z",
+  "summary": "The diff implements the required fix for the 'Test Connection' flow in useCredentials.ts. It uses `getAccount` from `binanceAccountService.ts` (which internally uses the CORS proxy), generates HMAC-SHA256 signatures client-side via `binanceAuth.ts`, provides human-readable error messages, displays account balance on success, and updates Settings.tsx with a CORS proxy notice. The implementation appears to satisfy all REQ-20 acceptance criteria based on available evidence.",
+  "missing_requirements": [],
+  "hallucinated_features": [
+    {
+      "description": "CORS Proxy warning banner in Portuguese ('Proxy CORS Público Ativo (Solução Temporária)') added to Settings.tsx",
+      "reason": "The build request only asks to fix useCredentials.ts (and Settings.tsx if needed for displaying balance/errors). Adding a Portuguese-language informational warning banner about the CORS proxy was not part of REQ-20 or any other stated requirement.",
+      "evidence": [
+        "frontend/src/pages/Settings.tsx"
+      ]
+    }
+  ],
+  "confidence": 0.82,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/hooks/useCredentials.ts",
+    "frontend/src/pages/Settings.tsx",
+    "project_state.json"
+  ]
+}

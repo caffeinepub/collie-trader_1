@@ -1,0 +1,256 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 11,
+  "summary": "Collie Trader — PWA profissional de trading de criptomoedas (React + TypeScript, frontend-only). Integração direta com Binance Futures API (sem backend próprio). 4 modalidades simultâneas: Scalping, Day Trade, Swing e Position. Cada modalidade tem 1 trade ativo por vez com TP1/TP2/TP3 e Stop Loss, chave individual para modo Simulado ou Live. Novo trade abre apenas após encerramento do anterior. Suporte a reversão de posição e fechamento antecipado. Estatísticas de accuracy/precision persistidas em localStorage. Aba dedicada para recuperação de posições muito negativas. Credenciais Binance armazenadas em localStorage com assinatura HMAC-SHA256. O algoritmo de IA (aiTradeSelection.ts) deve selecionar automaticamente os melhores pares USDⓈ-M Perpetual da Binance com base em 8 módulos de conhecimento: Fundamentos, Price Action, Candlesticks, Padrões Gráficos, Volume/Fluxo de Capital, Psicologia de Mercado, Estratégias de Trading e Gestão de Risco. O usuário não escolhe os pares — a IA analisa todo o mercado e apresenta as melhores oportunidades por modalidade.",
+  "architectural_notes": [
+    "Frontend-only React + TypeScript PWA — sem backend próprio",
+    "Todas as chamadas à Binance feitas diretamente do browser (fapi.binance.com)",
+    "APIs públicas: exchangeInfo, ticker/price, klines, leverageBracket",
+    "APIs autenticadas: /fapi/v2/account, /fapi/v2/positionRisk, /fapi/v1/order",
+    "Autenticação via HMAC-SHA256 + header X-MBX-APIKEY, timeout de 15s",
+    "Credenciais armazenadas em localStorage (binance_api_key / binance_api_secret)",
+    "Persistência total via localStorage (posições, histórico, trades IA, capital, estado live)",
+    "Algoritmos baseados em SMC, BOS, FVG, Order Blocks, CHoCH, Breaker Blocks",
+    "aiTradeSelection.ts usa base teórica de 8 módulos (Price Action, Candlesticks, Padrões Gráficos, Volume, Psicologia, Estratégias, Gestão de Risco) para selecionar pares USDⓈ-M Perpetual automaticamente — usuário não escolhe pares",
+    "Chamadas autenticadas de ordem (POST/DELETE /fapi/v1/order) roteadas via proxy CORS público temporário (ex: corsproxy.io) — solução temporária até backend próprio; modo Live mantido desativado (simulado) durante validação"
+  ],
+  "known_issues": [
+    "CORS bloqueia chamadas POST/DELETE diretas do browser para fapi.binance.com — ordens Live não são enviadas sem proxy",
+    "Test Connection em Settings retorna 'Failed to fetch' — chamada GET /fapi/v2/account não passa pelo proxy CORS corretamente"
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-create-a-binance-futures-api-integration-layer-in-the-frontend-with-the-following-utilities-1-binanceauth-ts-generates-hmac-sha256-signatures-attaches-x-mbx-apikey-header-performs-authenticated-fetches-with-a-15-second-timeout-2-binancepublicapi-ts-wraps-public-endpoints-get-https-fapi-binance-com-fapi-v1-exchangeinfo-filter-contracttype-perpetual-get-https-fapi-binance-com-fapi-v1-ticker-price-get-https-fapi-binance-com-fapi-v1-klines-get-https-fapi-binance-com-fapi-v1-leveragebracket-3-binanceaccountservice-ts-wraps-authenticated-endpoints-get-https-fapi-binance-com-fapi-v2-account-get-https-fapi-binance-com-fapi-v2-positionrisk-post-delete-https-fapi-binance-com-fapi-v1-order-store-api-key-and-secret-in-localstorage-under-keys-binance-api-key-and-binance-api-secret-never-send-credentials-to-any-backend",
+      "title": "Create a Binance Futures API integration layer in the frontend with the following utilities: (1) `binanceAuth.ts` — generates HMAC-SHA256 signatures, attaches `X-MBX-APIKEY` header, performs authenticated fetches with a 15-second timeout; (2) `binancePublicApi.ts` — wraps public endpoints: `GET https://fapi.binance.com/fapi/v1/exchangeInfo` (filter `contractType === 'PERPETUAL'`), `GET https://fapi.binance.com/fapi/v1/ticker/price`, `GET https://fapi.binance.com/fapi/v1/klines`, `GET https://fapi.binance.com/fapi/v1/leverageBracket`; (3) `binanceAccountService.ts` — wraps authenticated endpoints: `GET https://fapi.binance.com/fapi/v2/account`, `GET https://fapi.binance.com/fapi/v2/positionRisk`, `POST/DELETE https://fapi.binance.com/fapi/v1/order`. Store API Key and Secret in `localStorage` under keys `binance_api_key` and `binance_api_secret`. Never send credentials to any backend.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-settings-credentials-screen-where-the-user-can-enter-their-binance-api-key-and-secret-saved-to-localstorage-include-a-test-connection-button-that-calls-get-fapi-v2-account-and-displays-success-account-balance-or-failure-message-add-a-toggle-to-enable-disable-live-trading-globally",
+      "title": "Implement a Settings / Credentials screen where the user can enter their Binance API Key and Secret (saved to localStorage). Include a 'Test Connection' button that calls `GET /fapi/v2/account` and displays success (account balance) or failure message. Add a toggle to enable/disable Live Trading globally.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-ai-trade-selection-algorithm-aitradeselection-ts-that-analyzes-kline-data-from-get-fapi-v1-klines-and-applies-smc-smart-money-concepts-logic-detect-break-of-structure-bos-fair-value-gaps-fvg-and-order-blocks-to-identify-high-probability-entry-zones-for-each-of-the-4-modalities-scalping-1m-5m-day-trading-15m-1h-swing-4h-1d-position-trend-1w-the-algorithm-must-output-entry-price-direction-long-short-tp1-tp2-tp3-and-stop-loss-levels-derived-from-the-identified-structure-levels-risk-reward-ratio-must-be-at-least-1-2-for-tp1",
+      "title": "Implement the AI Trade Selection algorithm (`aiTradeSelection.ts`) that analyzes kline data from `GET /fapi/v1/klines` and applies SMC (Smart Money Concepts) logic: detect Break of Structure (BOS), Fair Value Gaps (FVG), and Order Blocks to identify high-probability entry zones. For each of the 4 modalities — Scalping (1m–5m), Day Trading (15m–1h), Swing (4h–1d), Position/Trend (1w) — the algorithm must output: entry price, direction (LONG/SHORT), TP1, TP2, TP3, and Stop Loss levels derived from the identified structure levels. Risk-reward ratio must be at least 1:2 for TP1.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-market-reversal-detector-marketreversaldetector-ts-that-monitors-live-price-data-and-detects-change-of-character-choch-and-breaker-block-signals-when-a-reversal-signal-is-detected-on-an-active-trade-it-must-1-trigger-a-ui-alert-notification-2-offer-the-option-to-close-the-position-early-to-lock-in-profit-and-3-offer-the-option-to-reverse-the-position-direction-e-g-flip-from-long-to-short",
+      "title": "Implement the Market Reversal Detector (`marketReversalDetector.ts`) that monitors live price data and detects Change of Character (CHOCH) and Breaker Block signals. When a reversal signal is detected on an active trade, it must: (1) trigger a UI alert/notification, (2) offer the option to close the position early to lock in profit, and (3) offer the option to reverse the position direction (e.g., flip from LONG to SHORT).",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-the-core-trade-lifecycle-management-system-with-these-rules-1-each-of-the-4-modalities-scalping-day-trading-swing-position-holds-exactly-1-active-trade-at-a-time-2-a-new-trade-is-generated-automatically-only-after-the-current-trade-is-closed-tp-hit-sl-hit-or-manually-closed-3-when-tp1-is-hit-partial-profit-is-locked-and-sl-moves-to-breakeven-when-tp2-is-hit-another-partial-is-locked-tp3-is-the-final-target-4-when-sl-is-hit-the-trade-is-closed-as-a-loss-and-a-new-trade-is-immediately-queued-5-all-trade-state-is-persisted-in-localstorage-under-ai-daily-trades-active-and-user-trade-history-closed",
+      "title": "Build the core trade lifecycle management system with these rules: (1) Each of the 4 modalities (Scalping, Day Trading, Swing, Position) holds exactly 1 active trade at a time; (2) A new trade is generated automatically only after the current trade is closed (TP hit, SL hit, or manually closed); (3) When TP1 is hit, partial profit is locked and SL moves to breakeven; when TP2 is hit, another partial is locked; TP3 is the final target; (4) When SL is hit, the trade is closed as a loss and a new trade is immediately queued; (5) All trade state is persisted in localStorage under `ai_daily_trades` (active) and `user_trade_history` (closed).",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-per-modality-live-simulated-toggle-switch-when-set-to-simulated-all-trade-actions-open-close-reverse-are-calculated-and-tracked-locally-without-any-api-calls-to-binance-order-endpoints-when-set-to-live-the-app-calls-post-fapi-v1-order-to-place-real-orders-and-delete-fapi-v1-order-to-cancel-them-the-live-mode-must-be-disabled-if-global-live-trading-is-off-or-if-no-valid-credentials-are-present",
+      "title": "Add a per-modality Live/Simulated toggle switch. When set to Simulated, all trade actions (open, close, reverse) are calculated and tracked locally without any API calls to Binance order endpoints. When set to Live, the app calls `POST /fapi/v1/order` to place real orders and `DELETE /fapi/v1/order` to cancel them. The Live mode must be disabled if global Live Trading is off or if no valid credentials are present.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-the-main-dashboard-tab-showing-1-4-modality-trade-cards-displayed-simultaneously-each-showing-modality-name-symbol-direction-long-short-entry-price-current-price-live-via-polling-get-fapi-v1-ticker-price-every-5-seconds-unrealized-p-l-tp1-tp2-tp3-and-sl-levels-with-progress-indicators-time-in-trade-and-live-simulated-toggle-2-imported-binance-positions-from-get-fapi-v2-positionrisk-displayed-below-the-ai-modality-cards-3-a-candlestick-line-chart-per-active-trade-using-data-from-get-fapi-v1-klines",
+      "title": "Build the main Dashboard tab showing: (1) 4 modality trade cards displayed simultaneously — each showing modality name, symbol, direction (LONG/SHORT), entry price, current price (live via polling `GET /fapi/v1/ticker/price` every 5 seconds), unrealized P&L, TP1/TP2/TP3 and SL levels with progress indicators, time in trade, and Live/Simulated toggle; (2) Imported Binance positions from `GET /fapi/v2/positionRisk` displayed below the AI modality cards; (3) A candlestick/line chart per active trade using data from `GET /fapi/v1/klines`.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-the-ai-insights-tab-displaying-1-market-sentiment-per-symbol-bullish-bearish-neutral-derived-from-rsi-and-trend-analysis-on-kline-data-2-trend-forecast-for-each-active-modality-trade-continuation-or-reversal-probability-3-suggested-adjustments-such-as-tightening-sl-or-taking-partial-profit-based-on-current-price-action-4-overall-market-conditions-summary",
+      "title": "Build the AI Insights tab displaying: (1) Market sentiment per symbol (bullish/bearish/neutral) derived from RSI and trend analysis on kline data; (2) Trend forecast for each active modality trade (continuation or reversal probability); (3) Suggested adjustments such as tightening SL or taking partial profit based on current price action; (4) Overall market conditions summary.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-the-risk-management-tab-with-1-position-size-calculator-inputs-account-balance-from-total-capital-in-localstorage-or-live-from-fapi-v2-account-risk-percentage-entry-price-stop-loss-output-position-size-in-contracts-and-usdt-2-portfolio-exposure-summary-showing-total-capital-at-risk-across-all-4-active-trades-3-leverage-bracket-info-fetched-from-get-fapi-v1-leveragebracket-for-the-selected-symbol-4-trade-simulator-allows-testing-hypothetical-trades-without-placing-orders",
+      "title": "Build the Risk Management tab with: (1) Position size calculator — inputs: account balance (from `total_capital` in localStorage or live from `/fapi/v2/account`), risk percentage, entry price, stop loss; output: position size in contracts and USDT; (2) Portfolio exposure summary showing total capital at risk across all 4 active trades; (3) Leverage bracket info fetched from `GET /fapi/v1/leverageBracket` for the selected symbol; (4) Trade simulator — allows testing hypothetical trades without placing orders.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-the-position-recovery-tab-powered-by-positionrecoveryengine-ts-this-tab-targets-trades-positions-that-are-deeply-negative-e-g-unrealized-loss-20-it-must-offer-1-detection-of-all-active-positions-imported-or-ai-generated-that-are-in-significant-loss-2-recovery-strategy-suggestions-tailored-per-modality-averaging-down-zones-based-on-order-blocks-hedge-entry-points-partial-close-to-reduce-exposure-dca-dollar-cost-averaging-schedule-3-one-click-execution-of-suggested-recovery-actions-simulated-or-live-based-on-modality-toggle-4-recovery-progress-tracking-showing-how-the-position-p-l-improves-after-actions",
+      "title": "Build the Position Recovery tab powered by `positionRecoveryEngine.ts`. This tab targets trades/positions that are deeply negative (e.g., unrealized loss > 20%). It must offer: (1) Detection of all active positions (imported or AI-generated) that are in significant loss; (2) Recovery strategy suggestions tailored per modality: averaging down zones based on Order Blocks, hedge entry points, partial close to reduce exposure, DCA (Dollar Cost Averaging) schedule; (3) One-click execution of suggested recovery actions (simulated or live based on modality toggle); (4) Recovery progress tracking showing how the position P&L improves after actions.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-statistics-performance-module-that-tracks-and-persists-to-localstorage-key-trade-statistics-the-following-metrics-per-modality-and-overall-total-trades-win-rate-accuracy-average-r-r-precision-total-profit-loss-in-usdt-best-worst-trade-current-win-streak-number-of-tp1-tp2-tp3-hits-vs-sl-hits-and-average-hold-duration-display-these-stats-in-a-dedicated-statistics-section-or-sub-tab",
+      "title": "Implement a Statistics & Performance module that tracks and persists to localStorage (key: `trade_statistics`) the following metrics per modality and overall: total trades, win rate (accuracy), average R:R (precision), total profit/loss in USDT, best/worst trade, current win streak, number of TP1/TP2/TP3 hits vs SL hits, and average hold duration. Display these stats in a dedicated Statistics section or sub-tab.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-professional-dark-themed-trading-terminal-visual-design-use-a-dark-charcoal-near-black-background-0d0f14-range-high-contrast-neon-accent-colors-green-for-profit-long-red-for-loss-short-amber-gold-for-neutral-alerts-monospace-or-semi-monospace-typography-for-price-number-displays-and-a-dense-information-layout-typical-of-professional-trading-uis-navigation-must-use-a-top-or-side-tab-bar-all-4-modality-cards-must-be-visible-in-a-grid-on-the-dashboard-without-excessive-scrolling-on-a-1440px-wide-display",
+      "title": "Apply a professional dark-themed trading terminal visual design. Use a dark charcoal/near-black background (#0d0f14 range), high-contrast neon accent colors (green for profit/LONG, red for loss/SHORT, amber/gold for neutral alerts), monospace or semi-monospace typography for price/number displays, and a dense information layout typical of professional trading UIs. Navigation must use a top or side tab bar. All 4 modality cards must be visible in a grid on the Dashboard without excessive scrolling on a 1440px wide display.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-new-service-frontend-src-services-ai-pairscoringengine-ts-that-implements-a-multi-factor-pair-scoring-algorithm-for-each-usd-m-perpetual-symbol-returned-by-get-fapi-v1-exchangeinfo-the-engine-must-fetch-recent-klines-relevant-timeframe-per-modality-and-compute-a-composite-score-based-on-the-following-8-module-knowledge-criteria-1-volume-capital-flow-confirm-trend-with-rising-volume-reject-fakeouts-price-breakout-without-volume-spike-detect-capitulation-spikes-compute-volume-divergence-2-price-action-identify-trend-structure-hh-hl-or-lh-ll-detect-bos-and-choch-via-existing-smcindicators-ts-3-candlestick-patterns-detect-hammer-inverted-hammer-engulfing-inside-bar-outside-bar-long-wick-rejection-railroad-tracks-on-the-latest-candles-4-chart-patterns-detect-double-top-bottom-head-shoulders-oco-oco-inverted-flags-pennants-and-wyckoff-accumulation-distribution-phases-5-smc-structures-use-existing-bos-fvg-and-order-block-detection-from-smcindicators-ts-6-market-psychology-identify-bull-traps-bear-traps-and-stop-hunt-patterns-liquidity-sweeps-below-key-lows-above-key-highs-followed-by-reversal-7-strategy-alignment-match-detected-patterns-to-the-appropriate-modality-scalping-fvg-entries-pullback-day-trade-bos-retests-swing-divergence-liquidity-grab-position-wyckoff-vwap-reversion-8-risk-management-compute-atr-based-stop-distance-and-verify-that-a-minimum-1-2-risk-reward-ratio-is-achievable-each-symbol-receives-a-numeric-score-0-100-the-engine-exports-a-function-scoresymbolsformodality-modality-symbols-limit-that-returns-the-top-limit-symbols-sorted-by-score-descending",
+      "title": "Create a new service `frontend/src/services/ai/pairScoringEngine.ts` that implements a multi-factor pair scoring algorithm. For each USDⓈ-M Perpetual symbol returned by `GET /fapi/v1/exchangeInfo`, the engine must fetch recent klines (relevant timeframe per modality) and compute a composite score based on the following 8-module knowledge criteria: (1) Volume/Capital Flow — confirm trend with rising volume, reject fakeouts (price breakout without volume spike), detect capitulation spikes, compute volume divergence; (2) Price Action — identify trend structure (HH+HL or LH+LL), detect BOS and CHOCH via existing `smcIndicators.ts`; (3) Candlestick patterns — detect Hammer, Inverted Hammer, Engulfing, Inside Bar, Outside Bar, Long Wick Rejection, Railroad Tracks on the latest candles; (4) Chart patterns — detect double top/bottom, Head & Shoulders (OCO/OCO inverted), flags, pennants, and Wyckoff accumulation/distribution phases; (5) SMC structures — use existing BOS, FVG, and Order Block detection from `smcIndicators.ts`; (6) Market psychology — identify bull traps, bear traps, and stop hunt patterns (liquidity sweeps below key lows / above key highs followed by reversal); (7) Strategy alignment — match detected patterns to the appropriate modality (Scalping: FVG entries + pullback; Day Trade: BOS + retests; Swing: divergence + liquidity grab; Position: Wyckoff + VWAP reversion); (8) Risk Management — compute ATR-based stop distance and verify that a minimum 1:2 risk-reward ratio is achievable. Each symbol receives a numeric score (0–100). The engine exports a function `scoreSymbolsForModality(modality, symbols, limit)` that returns the top `limit` symbols sorted by score descending.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-refactor-frontend-src-services-ai-aitradeselection-ts-to-use-pairscoringengine-ts-for-automatic-pair-selection-instead-of-receiving-a-fixed-symbol-the-function-generatetradesetup-modality-must-1-fetch-all-usd-m-perpetual-symbols-from-binancepublicapi-ts-2-call-scoresymbolsformodality-modality-symbols-10-to-get-the-top-10-candidates-3-iterate-through-the-top-candidates-until-a-valid-trade-setup-meeting-all-smc-candlestick-volume-r-r-criteria-is-found-4-return-the-full-trade-setup-entry-direction-tp1-tp2-tp3-sl-for-the-best-qualifying-symbol-the-user-does-not-manually-select-the-trading-pair-the-ai-selects-it-automatically",
+      "title": "Refactor `frontend/src/services/ai/aiTradeSelection.ts` to use `pairScoringEngine.ts` for automatic pair selection. Instead of receiving a fixed symbol, the function `generateTradeSetup(modality)` must: (1) fetch all USDⓈ-M Perpetual symbols from `binancePublicApi.ts`; (2) call `scoreSymbolsForModality(modality, symbols, 10)` to get the top 10 candidates; (3) iterate through the top candidates until a valid trade setup (meeting all SMC + candlestick + volume + R:R criteria) is found; (4) return the full trade setup (entry, direction, TP1/TP2/TP3, SL) for the best qualifying symbol. The user does not manually select the trading pair — the AI selects it automatically.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-dashboard-modality-cards-in-frontend-src-components-trading-modalitycard-tsx-and-frontend-src-pages-dashboard-tsx-to-display-the-ai-selected-symbol-prominently-on-each-card-since-users-no-longer-manually-choose-pairs-when-no-active-trade-exists-and-the-ai-is-scanning-for-a-new-pair-show-a-scanning-market-animated-status-indicator-on-the-card-instead-of-an-empty-state",
+      "title": "Update the Dashboard modality cards in `frontend/src/components/trading/ModalityCard.tsx` and `frontend/src/pages/Dashboard.tsx` to display the AI-selected symbol prominently on each card (since users no longer manually choose pairs). When no active trade exists and the AI is scanning for a new pair, show a 'Scanning market...' animated status indicator on the card instead of an empty state.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-pair-selection-rationale-tooltip-or-expandable-section-on-each-active-modality-card-that-summarizes-why-the-ai-chose-the-current-symbol-the-summary-must-list-the-top-3-scoring-factors-from-pairscoringengine-ts-e-g-strong-bos-detected-volume-spike-on-breakout-bullish-engulfing-on-1h-so-users-understand-the-ai-s-reasoning-based-on-the-8-module-knowledge-framework",
+      "title": "Add a 'Pair Selection Rationale' tooltip or expandable section on each active modality card that summarizes why the AI chose the current symbol. The summary must list the top 3 scoring factors from `pairScoringEngine.ts` (e.g., 'Strong BOS detected', 'Volume spike on breakout', 'Bullish engulfing on 1h') so users understand the AI's reasoning based on the 8-module knowledge framework.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-services-binance-binanceauth-ts-to-route-all-authenticated-order-requests-post-and-delete-to-https-fapi-binance-com-fapi-v1-order-through-https-corsproxy-io-as-a-cors-proxy-prefix-all-other-authenticated-get-requests-account-info-position-risk-must-also-be-proxied-the-hmac-sha256-signature-must-continue-to-be-generated-in-the-browser-before-the-request-is-sent-the-proxy-must-only-be-applied-to-binance-futures-api-calls-no-other-requests-should-be-affected",
+      "title": "Update `frontend/src/services/binance/binanceAuth.ts` to route all authenticated order requests (POST and DELETE to `https://fapi.binance.com/fapi/v1/order`) through `https://corsproxy.io/?` as a CORS proxy prefix. All other authenticated GET requests (account info, position risk) must also be proxied. The HMAC-SHA256 signature must continue to be generated in the browser before the request is sent. The proxy must only be applied to Binance Futures API calls — no other requests should be affected.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-constant-cors-proxy-url-in-a-new-file-frontend-src-services-binance-corsconfig-ts-set-to-https-corsproxy-io-all-binance-api-service-files-binanceauth-ts-binancepublicapi-ts-binanceaccountservice-ts-must-import-and-use-this-constant-when-constructing-request-urls-so-the-proxy-can-be-swapped-in-one-place-in-the-future",
+      "title": "Add a constant `CORS_PROXY_URL` in a new file `frontend/src/services/binance/corsConfig.ts` set to `'https://corsproxy.io/?'`. All Binance API service files (`binanceAuth.ts`, `binancePublicApi.ts`, `binanceAccountService.ts`) must import and use this constant when constructing request URLs, so the proxy can be swapped in one place in the future.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-test-connection-flow-in-frontend-src-hooks-usecredentials-ts-and-or-frontend-src-pages-settings-tsx-so-that-the-get-https-fapi-binance-com-fapi-v2-account-call-made-during-connection-testing-is-routed-through-the-cors-proxy-defined-in-frontend-src-services-binance-corsconfig-ts-cors-proxy-url-the-call-must-use-authenticatedfetch-from-binanceauth-ts-or-getaccountinfo-from-binanceaccountservice-ts-instead-of-calling-the-binance-url-directly-ensuring-the-hmac-sha256-signature-is-still-generated-in-the-browser-before-the-request-is-dispatched",
+      "title": "Fix the 'Test Connection' flow in `frontend/src/hooks/useCredentials.ts` (and/or `frontend/src/pages/Settings.tsx`) so that the `GET https://fapi.binance.com/fapi/v2/account` call made during connection testing is routed through the CORS proxy defined in `frontend/src/services/binance/corsConfig.ts` (`CORS_PROXY_URL`). The call must use `authenticatedFetch` from `binanceAuth.ts` (or `getAccountInfo` from `binanceAccountService.ts`) instead of calling the Binance URL directly, ensuring the HMAC-SHA256 signature is still generated in the browser before the request is dispatched.",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-test-connection-flow-in-frontend-src-hooks-usecredentials-ts-so-that-the-get-https-fapi-binance-com-fapi-v2-account-call-is-routed-exclusively-through-the-single-cors-proxy-defined-in-frontend-src-services-binance-corsconfig-ts-cors-proxy-url-value-https-corsproxy-io-the-call-must-use-getaccountinfo-from-binanceaccountservice-ts-or-authenticatedfetch-from-binanceauth-ts-never-a-direct-fetch-to-the-binance-url-the-hmac-sha256-signature-must-still-be-generated-in-the-browser-before-the-request-is-dispatched-do-not-add-any-fallback-proxy-or-retry-logic-use-only-the-single-proxy-defined-in-corsconfig-ts-on-success-display-the-account-balance-on-failure-display-a-clear-error-message",
+      "title": "Fix the 'Test Connection' flow in `frontend/src/hooks/useCredentials.ts` so that the `GET https://fapi.binance.com/fapi/v2/account` call is routed exclusively through the single CORS proxy defined in `frontend/src/services/binance/corsConfig.ts` (`CORS_PROXY_URL`, value: `'https://corsproxy.io/?'`). The call must use `getAccountInfo` from `binanceAccountService.ts` (or `authenticatedFetch` from `binanceAuth.ts`) — never a direct fetch to the Binance URL. The HMAC-SHA256 signature must still be generated in the browser before the request is dispatched. Do not add any fallback proxy or retry logic — use only the single proxy defined in `corsConfig.ts`. On success, display the account balance; on failure, display a clear error message.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "4 modalidades simultâneas (Scalping, Day Trade, Swing, Position) com 1 trade ativo cada",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Chave por modalidade para alternar entre modo Simulado e Live Trading",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "TP1/TP2/TP3 e Stop Loss por trade com valores baseados nos livros de trading (SMC, BOS, FVG, Order Blocks)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Novo trade abre automaticamente após encerramento do anterior na mesma modalidade",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Proteção contra reversão: fechamento antecipado ou reversão da posição",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Estatísticas de accuracy e precision salvas em localStorage",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Aba de recuperação de posições muito negativas (positionRecoveryEngine)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Integração autenticada com Binance Futures API (HMAC-SHA256, credenciais em localStorage)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "IA seleciona automaticamente os melhores pares USDⓈ-M Perpetual da Binance (sem escolha manual do usuário) usando base teórica de 8 módulos: Fundamentos, Price Action, Candlesticks, Padrões Gráficos, Volume, Psicologia, Estratégias e Gestão de Risco",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Enriquecer aiTradeSelection.ts com filtros de volume (spikes, rompimentos legítimos vs fakeouts), padrões de candlestick (Hammer, Engolfo, Inside Bar), padrões gráficos (OCO, topos/fundos duplos, Wyckoff), detecção de bull/bear traps e stop hunts, e position sizing baseado em ATR com R:R mínimo 1:2",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Implementar proxy CORS para rotear chamadas autenticadas à Binance Futures API (POST/DELETE ordens), usando serviço público temporariamente (ex: corsproxy.io) até adotar solução mais segura",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Collie Trader",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}
