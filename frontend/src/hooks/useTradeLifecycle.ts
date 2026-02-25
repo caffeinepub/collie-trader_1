@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { TradeModality, TradeDirection, TradeStatus } from '../types/trade';
 import type { Trade } from '../types/trade';
-import { loadActiveTrades, saveActiveTrades, getEmptyTrades } from '../services/storage/tradeStorage';
+import { loadActiveTrades, saveActiveTrades } from '../services/storage/tradeStorage';
 import { checkTPSL, manuallyCloseTrade } from '../services/trading/tradeLifecycleManager';
 import { generateTradeSetup } from '../services/ai/aiTradeSelection';
 import { executeTradeOpen, executeTradeClose } from '../services/trading/orderExecutor';
@@ -9,6 +9,13 @@ import { executeTradeOpen, executeTradeClose } from '../services/trading/orderEx
 function generateId(): string {
   return `trade_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
+
+const DEFAULT_SYMBOLS: Record<TradeModality, string> = {
+  [TradeModality.Scalping]: 'BTCUSDT',
+  [TradeModality.DayTrading]: 'ETHUSDT',
+  [TradeModality.Swing]: 'SOLUSDT',
+  [TradeModality.Position]: 'BTCUSDT',
+};
 
 export function useTradeLifecycle() {
   const [trades, setTrades] = useState<Record<TradeModality, Trade | null>>(loadActiveTrades);
@@ -48,7 +55,6 @@ export function useTradeLifecycle() {
           if (closed) {
             updated[modality] = null;
             changed = true;
-            // Auto-generate new trade after closure (no symbol arg — AI selects autonomously)
             setTimeout(() => {
               generateNewTrade(modality);
             }, 2000);
@@ -61,14 +67,15 @@ export function useTradeLifecycle() {
         return changed ? updated : prev;
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
   const generateNewTrade = useCallback(async (modality: TradeModality) => {
     setGenerating((prev) => ({ ...prev, [modality]: true }));
     try {
-      // AI autonomously selects the best pair — no symbol argument
-      const setup = await generateTradeSetup(modality);
+      const symbol = DEFAULT_SYMBOLS[modality];
+      const setup = await generateTradeSetup(modality, symbol);
       if (!setup) return;
 
       const newTrade: Trade = {
@@ -91,7 +98,6 @@ export function useTradeLifecycle() {
         tp3Hit: false,
         interval: setup.interval,
         entryReason: setup.entryReason,
-        scoringFactors: setup.scoringFactors, // persist AI rationale
       };
 
       setTrades((prev) => ({ ...prev, [modality]: newTrade }));
@@ -112,7 +118,6 @@ export function useTradeLifecycle() {
       manuallyCloseTrade(trade, currentPrice);
       setTrades((prev) => ({ ...prev, [modality]: null }));
 
-      // AI selects new pair autonomously after close
       setTimeout(() => generateNewTrade(modality), 2000);
     },
     [trades, generateNewTrade]
@@ -165,7 +170,6 @@ export function useTradeLifecycle() {
         tp2Hit: false,
         tp3Hit: false,
         isLive,
-        scoringFactors: trade.scoringFactors, // preserve original rationale
       };
 
       await executeTradeOpen(newTrade, isLive);

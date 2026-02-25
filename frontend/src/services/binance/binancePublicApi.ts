@@ -1,5 +1,3 @@
-// TEMPORARY: All public API calls are routed through the CORS proxy defined in corsConfig.ts.
-// Once a backend relay is implemented, remove the proxy and call fapi.binance.com directly.
 import { publicFetch, BINANCE_FUTURES_BASE } from './binanceAuth';
 import type { ExchangeInfo, ExchangeSymbol, TickerPrice, Kline, LeverageBracketInfo } from '../../types/binance';
 

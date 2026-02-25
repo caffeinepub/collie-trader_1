@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 11,
-  "summary": "Collie Trader — PWA profissional de trading de criptomoedas (React + TypeScript, frontend-only). Integração direta com Binance Futures API (sem backend próprio). 4 modalidades simultâneas: Scalping, Day Trade, Swing e Position. Cada modalidade tem 1 trade ativo por vez com TP1/TP2/TP3 e Stop Loss, chave individual para modo Simulado ou Live. Novo trade abre apenas após encerramento do anterior. Suporte a reversão de posição e fechamento antecipado. Estatísticas de accuracy/precision persistidas em localStorage. Aba dedicada para recuperação de posições muito negativas. Credenciais Binance armazenadas em localStorage com assinatura HMAC-SHA256. O algoritmo de IA (aiTradeSelection.ts) deve selecionar automaticamente os melhores pares USDⓈ-M Perpetual da Binance com base em 8 módulos de conhecimento: Fundamentos, Price Action, Candlesticks, Padrões Gráficos, Volume/Fluxo de Capital, Psicologia de Mercado, Estratégias de Trading e Gestão de Risco. O usuário não escolhe os pares — a IA analisa todo o mercado e apresenta as melhores oportunidades por modalidade.",
+  "projectStateVersion": 17,
+  "summary": "Collie Trader — PWA profissional de trading de criptomoedas (React + TypeScript, frontend-only). Integração direta com Binance Futures API (sem backend próprio). 4 modalidades simultâneas: Scalping, Day Trade, Swing e Position. Cada modalidade tem 1 trade ativo por vez com TP1/TP2/TP3 e Stop Loss, chave individual para modo Simulado ou Live. Novo trade abre apenas após encerramento do anterior. Suporte a reversão de posição e fechamento antecipado. Estatísticas de accuracy/precision persistidas em localStorage. Aba dedicada para recuperação de posições muito negativas. Credenciais Binance armazenadas em localStorage com assinatura HMAC-SHA256. O algoritmo de IA (aiTradeSelection.ts) deve selecionar automaticamente os melhores pares USDⓈ-M Perpetual da Binance com base em 8 módulos de conhecimento: Fundamentos, Price Action, Candlesticks, Padrões Gráficos, Volume/Fluxo de Capital, Psicologia de Mercado, Estratégias de Trading e Gestão de Risco. O usuário não escolhe os pares — a IA analisa todo o mercado e apresenta as melhores oportunidades por modalidade. REVERTIDO para estado exato da Versão 2: sem corsConfig.ts, sem pairScoringEngine.ts, sem tryProxies/CORS_PROXY_LIST, sem tooltip 'Pair Selection Rationale', sem 'Scanning market...' animado. Todas as modificações pós-Versão 2 em binanceAuth.ts, binancePublicApi.ts, binanceAccountService.ts, useCredentials.ts e Settings.tsx revertidas.",
   "architectural_notes": [
     "Frontend-only React + TypeScript PWA — sem backend próprio",
     "Todas as chamadas à Binance feitas diretamente do browser (fapi.binance.com)",
@@ -10,15 +10,10 @@
     "Autenticação via HMAC-SHA256 + header X-MBX-APIKEY, timeout de 15s",
     "Credenciais armazenadas em localStorage (binance_api_key / binance_api_secret)",
     "Persistência total via localStorage (posições, histórico, trades IA, capital, estado live)",
-    "Algoritmos baseados em SMC, BOS, FVG, Order Blocks, CHoCH, Breaker Blocks",
-    "aiTradeSelection.ts usa base teórica de 8 módulos (Price Action, Candlesticks, Padrões Gráficos, Volume, Psicologia, Estratégias, Gestão de Risco) para selecionar pares USDⓈ-M Perpetual automaticamente — usuário não escolhe pares",
-    "Chamadas autenticadas de ordem (POST/DELETE /fapi/v1/order) roteadas via proxy CORS público temporário (ex: corsproxy.io) — solução temporária até backend próprio; modo Live mantido desativado (simulado) durante validação"
+    "Projeto revertido para estado exato da Versão 2 — sem corsConfig.ts, sem pairScoringEngine.ts, sem lógica de CORS proxy, sem tryProxies/CORS_PROXY_LIST/CORS_PROXY_URL"
   ],
-  "known_issues": [
-    "CORS bloqueia chamadas POST/DELETE diretas do browser para fapi.binance.com — ordens Live não são enviadas sem proxy",
-    "Test Connection em Settings retorna 'Failed to fetch' — chamada GET /fapi/v2/account não passa pelo proxy CORS corretamente"
-  ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
       "id": "feature-create-a-binance-futures-api-integration-layer-in-the-frontend-with-the-following-utilities-1-binanceauth-ts-generates-hmac-sha256-signatures-attaches-x-mbx-apikey-header-performs-authenticated-fetches-with-a-15-second-timeout-2-binancepublicapi-ts-wraps-public-endpoints-get-https-fapi-binance-com-fapi-v1-exchangeinfo-filter-contracttype-perpetual-get-https-fapi-binance-com-fapi-v1-ticker-price-get-https-fapi-binance-com-fapi-v1-klines-get-https-fapi-binance-com-fapi-v1-leveragebracket-3-binanceaccountservice-ts-wraps-authenticated-endpoints-get-https-fapi-binance-com-fapi-v2-account-get-https-fapi-binance-com-fapi-v2-positionrisk-post-delete-https-fapi-binance-com-fapi-v1-order-store-api-key-and-secret-in-localstorage-under-keys-binance-api-key-and-binance-api-secret-never-send-credentials-to-any-backend",
@@ -179,6 +174,142 @@
         "REQ-20"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-services-binance-corsconfig-ts-to-export-an-ordered-list-of-cors-proxy-urls-e-g-cors-proxy-list-instead-of-a-single-cors-proxy-url-the-list-must-be-prioritized-as-https-corsproxy-io-https-api-allorigins-win-raw-url-https-cors-anywhere-herokuapp-com-also-export-a-helper-function-tryproxies-url-string-options-requestinit-promise-response-that-attempts-each-proxy-in-order-moving-to-the-next-if-the-current-one-fails-network-error-or-non-ok-response-and-throws-only-if-all-proxies-are-exhausted-keep-the-existing-cors-proxy-url-export-as-the-first-item-in-the-list-for-backward-compatibility",
+      "title": "Update `frontend/src/services/binance/corsConfig.ts` to export an ordered list of CORS proxy URLs (e.g., `CORS_PROXY_LIST`) instead of a single `CORS_PROXY_URL`. The list must be prioritized as: `['https://corsproxy.io/?', 'https://api.allorigins.win/raw?url=', 'https://cors-anywhere.herokuapp.com/']`. Also export a helper function `tryProxies(url: string, options?: RequestInit): Promise<Response>` that attempts each proxy in order, moving to the next if the current one fails (network error or non-OK response), and throws only if all proxies are exhausted. Keep the existing `CORS_PROXY_URL` export as the first item in the list for backward compatibility.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-services-binance-binanceauth-ts-to-replace-direct-usage-of-cors-proxy-url-with-the-tryproxies-helper-from-corsconfig-ts-the-authenticatedfetch-function-must-use-tryproxies-so-that-if-corsproxy-io-is-unreachable-it-automatically-retries-with-the-next-proxy-in-cors-proxy-list-before-failing",
+      "title": "Update `frontend/src/services/binance/binanceAuth.ts` to replace direct usage of `CORS_PROXY_URL` with the `tryProxies` helper from `corsConfig.ts`. The `authenticatedFetch` function must use `tryProxies` so that if `corsproxy.io` is unreachable, it automatically retries with the next proxy in `CORS_PROXY_LIST` before failing.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-error-message-shown-to-the-user-when-all-proxies-are-exhausted-in-frontend-src-hooks-usecredentials-ts-and-any-other-place-where-a-cors-network-error-is-surfaced-e-g-settings-tsx-replace-the-current-single-proxy-error-message-with-a-message-that-reflects-that-multiple-proxies-were-tried-and-all-failed-the-message-should-say-something-like-network-error-all-cors-proxies-are-unavailable-check-your-internet-connection-or-try-again-later",
+      "title": "Update the error message shown to the user when all proxies are exhausted. In `frontend/src/hooks/useCredentials.ts` and any other place where a CORS/network error is surfaced (e.g., `Settings.tsx`), replace the current single-proxy error message with a message that reflects that multiple proxies were tried and all failed. The message should say something like: 'Network error — all CORS proxies are unavailable. Check your internet connection or try again later.'",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-services-binance-corsconfig-ts-to-export-only-a-single-constant-cors-proxy-url-set-to-https-corsproxy-io-remove-the-cors-proxy-list-array-the-tryproxies-helper-function-and-all-multi-proxy-fallback-logic-the-file-must-export-only-cors-proxy-url",
+      "title": "Rewrite `frontend/src/services/binance/corsConfig.ts` to export only a single constant `CORS_PROXY_URL` set to `'https://corsproxy.io/?'`. Remove the `CORS_PROXY_LIST` array, the `tryProxies` helper function, and all multi-proxy fallback logic. The file must export only `CORS_PROXY_URL`.",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-services-binance-binanceauth-ts-to-remove-all-usage-of-tryproxies-and-cors-proxy-list-the-authenticatedfetch-function-must-use-cors-proxy-url-from-corsconfig-ts-directly-to-prefix-all-binance-futures-api-request-urls-there-must-be-no-retry-logic-no-fallback-proxies-and-no-loop-over-proxy-lists",
+      "title": "Update `frontend/src/services/binance/binanceAuth.ts` to remove all usage of `tryProxies` and `CORS_PROXY_LIST`. The `authenticatedFetch` function must use `CORS_PROXY_URL` from `corsConfig.ts` directly to prefix all Binance Futures API request URLs. There must be no retry logic, no fallback proxies, and no loop over proxy lists.",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-services-binance-binancepublicapi-ts-to-remove-all-usage-of-tryproxies-and-cors-proxy-list-all-public-binance-futures-api-calls-must-use-cors-proxy-url-from-corsconfig-ts-directly-as-the-proxy-prefix-with-no-fallback-or-retry-logic",
+      "title": "Update `frontend/src/services/binance/binancePublicApi.ts` to remove all usage of `tryProxies` and `CORS_PROXY_LIST`. All public Binance Futures API calls must use `CORS_PROXY_URL` from `corsConfig.ts` directly as the proxy prefix, with no fallback or retry logic.",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-hooks-usecredentials-ts-to-remove-all-multi-proxy-error-messages-and-retry-logic-the-test-connection-flow-must-call-getaccountinfo-from-binanceaccountservice-ts-which-uses-the-single-cors-proxy-url-on-success-display-the-account-balance-on-failure-display-a-simple-error-message-such-as-connection-failed-check-your-api-credentials-or-cors-proxy-availability",
+      "title": "Update `frontend/src/hooks/useCredentials.ts` to remove all multi-proxy error messages and retry logic. The 'Test Connection' flow must call `getAccountInfo` from `binanceAccountService.ts` (which uses the single `CORS_PROXY_URL`). On success, display the account balance. On failure, display a simple error message such as: 'Connection failed — check your API credentials or CORS proxy availability.'",
+      "reqIds": [
+        "REQ-30"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-pages-settings-tsx-to-remove-any-ui-text-or-error-messages-referencing-multiple-proxies-or-the-all-cors-proxies-are-unavailable-message-the-cors-proxy-notice-on-the-settings-page-must-reflect-only-the-single-corsproxy-io-proxy-in-use",
+      "title": "Update `frontend/src/pages/Settings.tsx` to remove any UI text or error messages referencing multiple proxies or the 'all CORS proxies are unavailable' message. The CORS proxy notice on the Settings page must reflect only the single `corsproxy.io` proxy in use.",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-services-binance-binanceauth-ts-to-its-version-2-state-generate-hmac-sha256-signatures-client-side-attach-x-mbx-apikey-header-and-perform-authenticated-fetches-with-a-15-second-timeout-with-no-cors-proxy-no-cors-proxy-url-import-no-tryproxies-and-no-cors-proxy-list-all-binance-futures-api-urls-must-be-called-directly-e-g-https-fapi-binance-com-without-any-proxy-prefix",
+      "title": "Rewrite `frontend/src/services/binance/binanceAuth.ts` to its Version 2 state: generate HMAC-SHA256 signatures client-side, attach `X-MBX-APIKEY` header, and perform authenticated fetches with a 15-second timeout — with NO CORS proxy, no `CORS_PROXY_URL` import, no `tryProxies`, and no `CORS_PROXY_LIST`. All Binance Futures API URLs must be called directly (e.g., `https://fapi.binance.com/...`) without any proxy prefix.",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-services-binance-binancepublicapi-ts-to-its-version-2-state-all-public-binance-futures-api-calls-fapi-v1-exchangeinfo-fapi-v1-ticker-price-fapi-v1-klines-fapi-v1-leveragebracket-must-call-https-fapi-binance-com-directly-with-no-cors-proxy-no-cors-proxy-url-import-no-tryproxies-and-no-cors-proxy-list",
+      "title": "Rewrite `frontend/src/services/binance/binancePublicApi.ts` to its Version 2 state: all public Binance Futures API calls (`/fapi/v1/exchangeInfo`, `/fapi/v1/ticker/price`, `/fapi/v1/klines`, `/fapi/v1/leverageBracket`) must call `https://fapi.binance.com/...` directly with NO CORS proxy, no `CORS_PROXY_URL` import, no `tryProxies`, and no `CORS_PROXY_LIST`.",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-delete-the-file-frontend-src-services-binance-corsconfig-ts-entirely-this-file-must-not-exist-in-the-version-2-state-remove-all-imports-of-this-file-from-any-other-module",
+      "title": "Delete the file `frontend/src/services/binance/corsConfig.ts` entirely. This file must not exist in the Version 2 state. Remove all imports of this file from any other module.",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-hooks-usecredentials-ts-to-its-version-2-state-the-test-connection-flow-must-call-getaccountinfo-from-binanceaccountservice-ts-which-calls-binance-directly-no-proxy-remove-all-references-to-cors-proxy-tryproxies-cors-proxy-list-and-multi-proxy-error-messages-on-success-display-the-account-balance-on-failure-display-a-simple-error-message-such-as-connection-failed-check-your-api-credentials-and-network-connection",
+      "title": "Rewrite `frontend/src/hooks/useCredentials.ts` to its Version 2 state: the 'Test Connection' flow must call `getAccountInfo` from `binanceAccountService.ts` (which calls Binance directly, no proxy). Remove all references to CORS proxy, `tryProxies`, `CORS_PROXY_LIST`, and multi-proxy error messages. On success, display the account balance. On failure, display a simple error message such as 'Connection failed — check your API credentials and network connection.'",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-pages-settings-tsx-to-its-version-2-state-remove-all-ui-text-notices-or-error-messages-referencing-cors-proxies-corsproxy-io-multiple-proxies-or-proxy-availability-the-settings-page-must-show-only-the-binance-api-key-secret-credential-inputs-the-test-connection-button-and-the-global-live-trading-toggle-with-no-proxy-related-ui-elements",
+      "title": "Rewrite `frontend/src/pages/Settings.tsx` to its Version 2 state: remove all UI text, notices, or error messages referencing CORS proxies, corsproxy.io, multiple proxies, or proxy availability. The Settings page must show only the Binance API Key/Secret credential inputs, the 'Test Connection' button, and the global Live Trading toggle — with no proxy-related UI elements.",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-delete-frontend-src-services-ai-pairscoringengine-ts-entirely-this-file-must-not-exist-in-the-version-2-state-remove-all-imports-of-this-file-from-any-other-module-including-aitradeselection-ts",
+      "title": "Delete `frontend/src/services/ai/pairScoringEngine.ts` entirely. This file must not exist in the Version 2 state. Remove all imports of this file from any other module, including `aiTradeSelection.ts`.",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-services-ai-aitradeselection-ts-to-its-version-2-state-the-function-must-accept-a-symbol-parameter-not-auto-select-it-fetch-kline-data-for-that-symbol-and-apply-smc-logic-bos-fvg-order-blocks-to-generate-a-trade-setup-with-entry-direction-long-short-tp1-tp2-tp3-and-stop-loss-remove-all-calls-to-scoresymbolsformodality-pairscoringengine-or-any-auto-pair-selection-logic",
+      "title": "Rewrite `frontend/src/services/ai/aiTradeSelection.ts` to its Version 2 state: the function must accept a `symbol` parameter (not auto-select it), fetch kline data for that symbol, and apply SMC logic (BOS, FVG, Order Blocks) to generate a trade setup with entry, direction (LONG/SHORT), TP1/TP2/TP3, and Stop Loss. Remove all calls to `scoreSymbolsForModality`, `pairScoringEngine`, or any auto-pair-selection logic.",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-components-trading-modalitycard-tsx-to-its-version-2-state-remove-the-pair-selection-rationale-tooltip-expandable-section-and-the-animated-scanning-market-status-indicator-when-no-active-trade-exists-show-a-standard-empty-state-e-g-no-active-trade-the-card-must-display-modality-name-symbol-direction-entry-price-current-price-unrealized-p-l-tp1-tp2-tp3-and-sl-levels-with-progress-indicators-time-in-trade-and-live-simulated-toggle-exactly-as-in-version-2",
+      "title": "Rewrite `frontend/src/components/trading/ModalityCard.tsx` to its Version 2 state: remove the 'Pair Selection Rationale' tooltip/expandable section and the animated 'Scanning market...' status indicator. When no active trade exists, show a standard empty state (e.g., 'No active trade'). The card must display modality name, symbol, direction, entry price, current price, unrealized P&L, TP1/TP2/TP3 and SL levels with progress indicators, time in trade, and Live/Simulated toggle — exactly as in Version 2.",
+      "reqIds": [
+        "REQ-40"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-pages-dashboard-tsx-to-its-version-2-state-remove-the-scanning-market-animated-indicator-remove-any-ai-auto-pair-selection-ui-and-restore-the-version-2-dashboard-layout-with-4-modality-trade-cards-in-a-grid-imported-binance-positions-below-the-cards-and-a-candlestick-line-chart-per-active-trade-the-symbol-used-in-each-modality-card-must-come-from-the-active-trade-data-not-auto-selected-by-pairscoringengine",
+      "title": "Rewrite `frontend/src/pages/Dashboard.tsx` to its Version 2 state: remove the 'Scanning market...' animated indicator, remove any AI auto-pair-selection UI, and restore the Version 2 dashboard layout with 4 modality trade cards in a grid, imported Binance positions below the cards, and a candlestick/line chart per active trade. The symbol used in each modality card must come from the active trade data (not auto-selected by pairScoringEngine).",
+      "reqIds": [
+        "REQ-41"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -237,15 +368,11 @@
       "status": "pending"
     },
     {
-      "id": "AR-10",
-      "summary": "Enriquecer aiTradeSelection.ts com filtros de volume (spikes, rompimentos legítimos vs fakeouts), padrões de candlestick (Hammer, Engolfo, Inside Bar), padrões gráficos (OCO, topos/fundos duplos, Wyckoff), detecção de bull/bear traps e stop hunts, e position sizing baseado em ATR com R:R mínimo 1:2",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-11",
-      "summary": "Implementar proxy CORS para rotear chamadas autenticadas à Binance Futures API (POST/DELETE ordens), usando serviço público temporariamente (ex: corsproxy.io) até adotar solução mais segura",
-      "reqIds": [],
+      "id": "AR-12",
+      "summary": "Rewrite `frontend/src/services/binance/binanceAccountService.ts` to its Version 2 state: all authenticated endpoints (`GET /fapi/v2/account`, `GET /fapi/v2/positionRisk`, `POST/DELETE /fapi/v1/order`) must use `authenticatedFetch` from `binanceAuth.ts` and call `https://fapi.binance.com/...` directly with NO CORS proxy, no `CORS_PROXY_URL` import, and no `tryProxies`.",
+      "reqIds": [
+        "REQ-34"
+      ],
       "status": "pending"
     }
   ],

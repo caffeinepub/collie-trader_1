@@ -1,7 +1,4 @@
-import { CORS_PROXY_URL } from './corsConfig';
-
 const BINANCE_FUTURES_BASE = 'https://fapi.binance.com';
-const TIMEOUT_MS = 15000;
 
 export function getCredentials(): { apiKey: string; apiSecret: string } {
   return {
@@ -40,18 +37,9 @@ async function hmacSha256(secret: string, message: string): Promise<string> {
 }
 
 /**
- * Wraps a full URL with the CORS proxy prefix if configured.
- * TEMPORARY: Routes requests through corsproxy.io to bypass browser CORS restrictions.
- */
-function proxify(url: string): string {
-  if (!CORS_PROXY_URL) return url;
-  return `${CORS_PROXY_URL}${encodeURIComponent(url)}`;
-}
-
-/**
  * Authenticated fetch for Binance Futures private endpoints.
  * HMAC-SHA256 signature is generated client-side before the request is dispatched.
- * The signed URL is then routed through the CORS proxy (temporary workaround).
+ * Calls fapi.binance.com directly.
  */
 export async function authenticatedFetch(
   path: string,
@@ -69,32 +57,27 @@ export async function authenticatedFetch(
     .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
     .join('&');
 
-  // Signature is generated client-side — never exposed to the proxy as a standalone value
   const signature = await hmacSha256(apiSecret, queryString);
   const fullQuery = `${queryString}&signature=${signature}`;
 
-  const directUrl =
+  const url =
     method === 'GET' || method === 'DELETE'
       ? `${BINANCE_FUTURES_BASE}${path}?${fullQuery}`
       : `${BINANCE_FUTURES_BASE}${path}`;
 
-  // TEMPORARY: Route through CORS proxy to bypass browser CORS restrictions
-  const url = proxify(directUrl);
-
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const response = await fetch(url, {
+    return await fetch(url, {
       method,
+      signal: controller.signal,
       headers: {
         'X-MBX-APIKEY': apiKey,
         ...(method === 'POST' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
       },
       body: method === 'POST' ? fullQuery : undefined,
-      signal: controller.signal,
     });
-    return response;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -102,16 +85,13 @@ export async function authenticatedFetch(
 
 /**
  * Public (unauthenticated) fetch for Binance Futures public endpoints.
- * TEMPORARY: Also routed through CORS proxy to avoid CORS errors on public endpoints.
+ * Calls fapi.binance.com directly.
  */
 export async function publicFetch(url: string): Promise<Response> {
-  // TEMPORARY: Route through CORS proxy to bypass browser CORS restrictions
-  const proxiedUrl = proxify(url);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
   try {
-    const response = await fetch(proxiedUrl, { signal: controller.signal });
-    return response;
+    return await fetch(url, { signal: controller.signal });
   } finally {
     clearTimeout(timeoutId);
   }

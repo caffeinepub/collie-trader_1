@@ -1,43 +1,31 @@
-import { getKlines, getExchangeInfo } from '../binance/binancePublicApi';
+import { getKlines } from '../binance/binancePublicApi';
 import { parseKlines, detectBOS, detectFVG, detectOrderBlocks, calculateATR } from './smcIndicators';
 import { TradeModality, TradeDirection } from '../../types/trade';
 import type { TradeSetup } from '../../types/trade';
-import { scoreSymbolsForModality } from './pairScoringEngine';
 
-const MODALITY_PRIMARY_INTERVAL: Record<TradeModality, string> = {
+export const MODALITY_PRIMARY_INTERVAL: Record<TradeModality, string> = {
   [TradeModality.Scalping]: '5m',
   [TradeModality.DayTrading]: '1h',
   [TradeModality.Swing]: '4h',
   [TradeModality.Position]: '1d',
 };
 
-// Fallback symbols if exchange info fetch fails
-const FALLBACK_SYMBOLS = [
-  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
-  'ADAUSDT', 'DOGEUSDT', 'AVAXUSDT', 'LINKUSDT', 'DOTUSDT',
-  'MATICUSDT', 'LTCUSDT', 'UNIUSDT', 'ATOMUSDT', 'NEARUSDT',
-];
+const DEFAULT_SYMBOLS: Record<TradeModality, string> = {
+  [TradeModality.Scalping]: 'BTCUSDT',
+  [TradeModality.DayTrading]: 'ETHUSDT',
+  [TradeModality.Swing]: 'SOLUSDT',
+  [TradeModality.Position]: 'BTCUSDT',
+};
 
-async function fetchAllPerpetualSymbols(): Promise<string[]> {
-  try {
-    const exchangeSymbols = await getExchangeInfo();
-    return exchangeSymbols
-      .filter((s) => s.quoteAsset === 'USDT')
-      .map((s) => s.symbol);
-  } catch {
-    return FALLBACK_SYMBOLS;
-  }
-}
-
-async function buildTradeSetupForSymbol(
-  symbol: string,
+export async function generateTradeSetup(
   modality: TradeModality,
-  scoringFactors: string[]
+  symbol?: string
 ): Promise<TradeSetup | null> {
+  const targetSymbol = symbol || DEFAULT_SYMBOLS[modality];
   const interval = MODALITY_PRIMARY_INTERVAL[modality];
 
   try {
-    const klines = await getKlines(symbol, interval, 100);
+    const klines = await getKlines(targetSymbol, interval, 100);
     const candles = parseKlines(klines);
 
     if (candles.length < 20) return null;
@@ -91,41 +79,29 @@ async function buildTradeSetupForSymbol(
       entryPrice = currentPrice;
     }
 
-    // ATR-based TP/SL calculation
-    const atrMultiplier = getATRMultiplier(modality);
-    let tp1: number, tp2: number, tp3: number, stopLoss: number;
+    const slDistance = atr * 1.5;
+    const stopLoss =
+      direction === TradeDirection.LONG
+        ? entryPrice - slDistance
+        : entryPrice + slDistance;
 
-    if (direction === TradeDirection.LONG) {
-      stopLoss = entryPrice - atr * atrMultiplier.sl;
-      tp1 = entryPrice + atr * atrMultiplier.tp1;
-      tp2 = entryPrice + atr * atrMultiplier.tp2;
-      tp3 = entryPrice + atr * atrMultiplier.tp3;
-    } else {
-      stopLoss = entryPrice + atr * atrMultiplier.sl;
-      tp1 = entryPrice - atr * atrMultiplier.tp1;
-      tp2 = entryPrice - atr * atrMultiplier.tp2;
-      tp3 = entryPrice - atr * atrMultiplier.tp3;
-    }
+    const tp1 =
+      direction === TradeDirection.LONG
+        ? entryPrice + slDistance * 1.5
+        : entryPrice - slDistance * 1.5;
+    const tp2 =
+      direction === TradeDirection.LONG
+        ? entryPrice + slDistance * 2.5
+        : entryPrice - slDistance * 2.5;
+    const tp3 =
+      direction === TradeDirection.LONG
+        ? entryPrice + slDistance * 4
+        : entryPrice - slDistance * 4;
 
-    const risk = Math.abs(entryPrice - stopLoss);
-    const reward1 = Math.abs(tp1 - entryPrice);
-    const rrRatio = risk > 0 ? reward1 / risk : 0;
-
-    // Ensure minimum 1:2 RR
-    if (rrRatio < 2) {
-      if (direction === TradeDirection.LONG) {
-        tp1 = entryPrice + risk * 2;
-        tp2 = entryPrice + risk * 3;
-        tp3 = entryPrice + risk * 4.5;
-      } else {
-        tp1 = entryPrice - risk * 2;
-        tp2 = entryPrice - risk * 3;
-        tp3 = entryPrice - risk * 4.5;
-      }
-    }
+    const rrRatio = Math.abs(tp2 - entryPrice) / Math.abs(entryPrice - stopLoss);
 
     return {
-      symbol,
+      symbol: targetSymbol,
       direction,
       entry: entryPrice,
       tp1,
@@ -135,66 +111,10 @@ async function buildTradeSetupForSymbol(
       modality,
       interval,
       entryReason,
-      rrRatio: Math.abs(tp1 - entryPrice) / Math.abs(entryPrice - stopLoss),
-      scoringFactors,
+      rrRatio,
     };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Autonomously selects the best pair for the given modality using the
- * 8-module AI scoring engine, then generates a trade setup for it.
- * Falls back through top candidates if the first doesn't produce a valid setup.
- */
-export async function generateTradeSetup(modality: TradeModality): Promise<TradeSetup | null> {
-  try {
-    // Fetch all USDⓈ-M Perpetual symbols
-    const allSymbols = await fetchAllPerpetualSymbols();
-
-    // Score top candidates using the 8-module knowledge framework
-    const topCandidates = await scoreSymbolsForModality(modality, allSymbols, 10);
-
-    if (topCandidates.length === 0) {
-      // Last resort fallback
-      for (const symbol of FALLBACK_SYMBOLS.slice(0, 3)) {
-        const setup = await buildTradeSetupForSymbol(symbol, modality, [
-          'Fallback symbol — exchange data unavailable',
-        ]);
-        if (setup) return setup;
-      }
-      return null;
-    }
-
-    // Iterate through top candidates until we find a valid setup
-    for (const candidate of topCandidates) {
-      const setup = await buildTradeSetupForSymbol(
-        candidate.symbol,
-        modality,
-        candidate.scoringFactors
-      );
-      if (setup) return setup;
-    }
-
-    return null;
   } catch (error) {
-    console.error(`Failed to generate trade for ${modality}:`, error);
+    console.error(`Failed to generate trade setup for ${targetSymbol}:`, error);
     return null;
   }
 }
-
-function getATRMultiplier(modality: TradeModality) {
-  switch (modality) {
-    case TradeModality.Scalping:
-      return { sl: 1.0, tp1: 2.0, tp2: 3.0, tp3: 4.5 };
-    case TradeModality.DayTrading:
-      return { sl: 1.5, tp1: 3.0, tp2: 5.0, tp3: 8.0 };
-    case TradeModality.Swing:
-      return { sl: 2.0, tp1: 4.0, tp2: 7.0, tp3: 12.0 };
-    case TradeModality.Position:
-      return { sl: 3.0, tp1: 6.0, tp2: 10.0, tp3: 18.0 };
-  }
-}
-
-export { MODALITY_PRIMARY_INTERVAL };

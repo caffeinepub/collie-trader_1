@@ -45,7 +45,6 @@ export interface Trade {
   tp3Hit: boolean;
   interval: string;
   entryReason?: string;
-  scoringFactors?: string[]; // AI pair selection rationale
 }
 
 export interface TradeSetup {
@@ -60,7 +59,6 @@ export interface TradeSetup {
   interval: string;
   entryReason: string;
   rrRatio: number;
-  scoringFactors?: string[]; // AI pair selection rationale
 }
 
 export interface ClosedTrade extends Trade {

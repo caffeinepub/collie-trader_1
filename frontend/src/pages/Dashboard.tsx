@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { TradeModality } from '../types/trade';
 import { useTradeLifecycle } from '../hooks/useTradeLifecycle';
 import { useModalityMode } from '../hooks/useModalityMode';
@@ -22,19 +22,6 @@ export function Dashboard() {
   } = useTradeLifecycle();
 
   const { isLive, toggleMode, canGoLive } = useModalityMode();
-
-  // Track scanning state per modality (true while AI is selecting a pair)
-  const [scanningStates, setScanningStates] = useState<Record<TradeModality, boolean>>({
-    [TradeModality.Scalping]: false,
-    [TradeModality.DayTrading]: false,
-    [TradeModality.Swing]: false,
-    [TradeModality.Position]: false,
-  });
-
-  // Sync scanning state with generating state from the lifecycle hook
-  useEffect(() => {
-    setScanningStates({ ...generating });
-  }, [generating]);
 
   const activeSymbols = useMemo(() => {
     const symbols = new Set<string>();
@@ -69,35 +56,7 @@ export function Dashboard() {
   ];
 
   const hasAnyTrade = Object.values(trades).some(Boolean);
-
-  const handleGenerate = async (modality: TradeModality) => {
-    setScanningStates((prev) => ({ ...prev, [modality]: true }));
-    try {
-      await generateNewTrade(modality);
-    } finally {
-      setScanningStates((prev) => ({ ...prev, [modality]: false }));
-    }
-  };
-
-  const handleInitializeAll = async () => {
-    const modalities = Object.values(TradeModality);
-    setScanningStates({
-      [TradeModality.Scalping]: true,
-      [TradeModality.DayTrading]: true,
-      [TradeModality.Swing]: true,
-      [TradeModality.Position]: true,
-    });
-    try {
-      await initializeAllTrades();
-    } finally {
-      setScanningStates({
-        [TradeModality.Scalping]: false,
-        [TradeModality.DayTrading]: false,
-        [TradeModality.Swing]: false,
-        [TradeModality.Position]: false,
-      });
-    }
-  };
+  const isAnyGenerating = Object.values(generating).some(Boolean);
 
   return (
     <div className="p-4 space-y-4 max-w-screen-2xl mx-auto">
@@ -108,18 +67,18 @@ export function Dashboard() {
           <p className="text-xs text-muted-foreground">
             {activeSymbols.length > 0
               ? `Monitoring: ${activeSymbols.join(', ')}`
-              : 'AI scanning all USDⓈ-M pairs — best opportunities selected automatically'}
+              : 'No active trades — generate a trade to get started'}
           </p>
         </div>
         {!hasAnyTrade && (
           <Button
             size="sm"
-            onClick={handleInitializeAll}
-            disabled={Object.values(scanningStates).some(Boolean)}
+            onClick={initializeAllTrades}
+            disabled={isAnyGenerating}
             className="text-xs h-8 bg-primary/20 border border-primary/40 text-profit hover:bg-primary/30"
           >
             <Zap className="w-3 h-3 mr-1" />
-            {Object.values(scanningStates).some(Boolean) ? 'Scanning...' : 'Initialize All Trades'}
+            {isAnyGenerating ? 'Generating...' : 'Initialize All Trades'}
           </Button>
         )}
       </div>
@@ -135,10 +94,9 @@ export function Dashboard() {
             isLive={isLive(modality)}
             canGoLive={canGoLive}
             isGenerating={generating[modality]}
-            isScanning={scanningStates[modality]}
             onToggleLive={() => toggleMode(modality)}
             onClose={() => closeTrade(modality, isLive(modality))}
-            onGenerate={() => handleGenerate(modality)}
+            onGenerate={() => generateNewTrade(modality)}
           />
         ))}
       </div>

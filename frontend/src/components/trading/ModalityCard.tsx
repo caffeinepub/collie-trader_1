@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Clock, TrendingUp, TrendingDown, Zap, RefreshCw, X, Info, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Clock, TrendingUp, TrendingDown, Zap, X } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +14,6 @@ interface ModalityCardProps {
   isLive: boolean;
   canGoLive: boolean;
   isGenerating: boolean;
-  isScanning?: boolean;
   onToggleLive: () => void;
   onClose: () => void;
   onGenerate: () => void;
@@ -57,13 +55,10 @@ export function ModalityCard({
   isLive,
   canGoLive,
   isGenerating,
-  isScanning = false,
   onToggleLive,
   onClose,
   onGenerate,
 }: ModalityCardProps) {
-  const [showRationale, setShowRationale] = useState(false);
-
   const isLong = trade?.direction === TradeDirection.LONG;
   const pnlData = trade && currentPrice ? calculatePnL(trade, currentPrice) : null;
   const isProfitable = (pnlData?.pnl || 0) >= 0;
@@ -76,8 +71,6 @@ export function ModalityCard({
   };
 
   const duration = trade ? Date.now() - trade.openTime : 0;
-  const hasRationale = trade?.scoringFactors && trade.scoringFactors.length > 0;
-  const scanning = isScanning || isGenerating;
 
   return (
     <div
@@ -86,8 +79,6 @@ export function ModalityCard({
           ? isProfitable
             ? 'border-profit/30 shadow-profit-glow'
             : 'border-loss/30 shadow-loss-glow'
-          : scanning
-          ? 'border-primary/40 shadow-[0_0_12px_rgba(var(--primary-rgb),0.15)]'
           : 'border-border'
       }`}
     >
@@ -136,18 +127,7 @@ export function ModalityCard({
           {/* Symbol & Price */}
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-1.5">
-                <div className="text-sm font-bold terminal-text">{trade.symbol}</div>
-                {hasRationale && (
-                  <button
-                    onClick={() => setShowRationale((v) => !v)}
-                    className="text-muted-foreground hover:text-primary transition-colors"
-                    title="Why this pair?"
-                  >
-                    <Info className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
+              <div className="text-sm font-bold terminal-text">{trade.symbol}</div>
               <div className="text-xs text-muted-foreground terminal-text">
                 Entry: {formatPrice(trade.entry)}
               </div>
@@ -168,33 +148,6 @@ export function ModalityCard({
               )}
             </div>
           </div>
-
-          {/* AI Pair Selection Rationale (expandable) */}
-          {hasRationale && showRationale && (
-            <div className="rounded-md border border-border/60 bg-background/50 p-2.5 space-y-1.5">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-primary tracking-wide">
-                  WHY THIS PAIR?
-                </span>
-                <button
-                  onClick={() => setShowRationale(false)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <ChevronUp className="w-3 h-3" />
-                </button>
-              </div>
-              <ul className="space-y-1">
-                {trade.scoringFactors!.map((factor, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
-                    <span className="text-profit text-xs mt-0.5 shrink-0">•</span>
-                    <span className="text-xs text-muted-foreground terminal-text leading-relaxed">
-                      {factor}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           {/* TP/SL Levels */}
           <div className="space-y-1.5">
@@ -253,40 +206,19 @@ export function ModalityCard({
           </div>
         </>
       ) : (
-        /* Empty / Scanning State */
+        /* Empty State */
         <div className="flex flex-col items-center justify-center py-6 gap-3">
-          {scanning ? (
-            <>
-              <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-primary animate-pulse" />
-                <span className="text-xs text-primary font-medium terminal-text animate-pulse">
-                  Scanning market...
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
-                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
-                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
-              </div>
-              <p className="text-xs text-muted-foreground text-center max-w-[160px] leading-relaxed">
-                AI analyzing all USDⓈ-M pairs with 8-module framework
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="text-xs text-muted-foreground text-center">No active trade</div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onGenerate}
-                disabled={isGenerating}
-                className="text-xs h-7 border-primary/30 text-primary hover:bg-primary/10"
-              >
-                <Zap className="w-3 h-3 mr-1" />
-                Scan & Generate
-              </Button>
-            </>
-          )}
+          <div className="text-xs text-muted-foreground text-center">No active trade</div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onGenerate}
+            disabled={isGenerating}
+            className="text-xs h-7 border-primary/30 text-primary hover:bg-primary/10"
+          >
+            <Zap className="w-3 h-3 mr-1" />
+            {isGenerating ? 'Generating...' : 'Generate Trade'}
+          </Button>
         </div>
       )}
     </div>

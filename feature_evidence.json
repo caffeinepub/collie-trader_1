@@ -2,10 +2,81 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-test-connection-flow-in-frontend-src-hooks-usecredentials-ts-so-that-the-get-https-fapi-binance-com-fapi-v2-account-call-is-routed-exclusively-through-the-single-cors-proxy-defined-in-frontend-src-services-binance-corsconfig-ts-cors-proxy-url-value-https-corsproxy-io-the-call-must-use-getaccountinfo-from-binanceaccountservice-ts-or-authenticatedfetch-from-binanceauth-ts-never-a-direct-fetch-to-the-binance-url-the-hmac-sha256-signature-must-still-be-generated-in-the-browser-before-the-request-is-dispatched-do-not-add-any-fallback-proxy-or-retry-logic-use-only-the-single-proxy-defined-in-corsconfig-ts-on-success-display-the-account-balance-on-failure-display-a-clear-error-message",
-      "featureTitle": "Fix the 'Test Connection' flow in `frontend/src/hooks/useCredentials.ts` so that the `GET https://fapi.binance.com/fapi/v2/account` call is routed exclusively through the single CORS proxy defined in `frontend/src/services/binance/corsConfig.ts` (`CORS_PROXY_URL`, value: `'https://corsproxy.io/?'`). The call must use `getAccountInfo` from `binanceAccountService.ts` (or `authenticatedFetch` from `binanceAuth.ts`) — never a direct fetch to the Binance URL. The HMAC-SHA256 signature must still be generated in the browser before the request is dispatched. Do not add any fallback proxy or retry logic — use only the single proxy defined in `corsConfig.ts`. On success, display the account balance; on failure, display a clear error message.",
+      "featureId": "feature-rewrite-frontend-src-services-binance-binanceauth-ts-to-its-version-2-state-generate-hmac-sha256-signatures-client-side-attach-x-mbx-apikey-header-and-perform-authenticated-fetches-with-a-15-second-timeout-with-no-cors-proxy-no-cors-proxy-url-import-no-tryproxies-and-no-cors-proxy-list-all-binance-futures-api-urls-must-be-called-directly-e-g-https-fapi-binance-com-without-any-proxy-prefix",
+      "featureTitle": "Rewrite `frontend/src/services/binance/binanceAuth.ts` to its Version 2 state: generate HMAC-SHA256 signatures client-side, attach `X-MBX-APIKEY` header, and perform authenticated fetches with a 15-second timeout — with NO CORS proxy, no `CORS_PROXY_URL` import, no `tryProxies`, and no `CORS_PROXY_LIST`. All Binance Futures API URLs must be called directly (e.g., `https://fapi.binance.com/...`) without any proxy prefix.",
       "files": [
-        "frontend/src/hooks/useCredentials.ts",
+        "frontend/src/services/binance/binanceAuth.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-32"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-rewrite-frontend-src-services-binance-binancepublicapi-ts-to-its-version-2-state-all-public-binance-futures-api-calls-fapi-v1-exchangeinfo-fapi-v1-ticker-price-fapi-v1-klines-fapi-v1-leveragebracket-must-call-https-fapi-binance-com-directly-with-no-cors-proxy-no-cors-proxy-url-import-no-tryproxies-and-no-cors-proxy-list",
+      "featureTitle": "Rewrite `frontend/src/services/binance/binancePublicApi.ts` to its Version 2 state: all public Binance Futures API calls (`/fapi/v1/exchangeInfo`, `/fapi/v1/ticker/price`, `/fapi/v1/klines`, `/fapi/v1/leverageBracket`) must call `https://fapi.binance.com/...` directly with NO CORS proxy, no `CORS_PROXY_URL` import, no `tryProxies`, and no `CORS_PROXY_LIST`.",
+      "files": [
+        "frontend/src/services/binance/binancePublicApi.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-33"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-delete-the-file-frontend-src-services-binance-corsconfig-ts-entirely-this-file-must-not-exist-in-the-version-2-state-remove-all-imports-of-this-file-from-any-other-module",
+      "featureTitle": "Delete the file `frontend/src/services/binance/corsConfig.ts` entirely. This file must not exist in the Version 2 state. Remove all imports of this file from any other module.",
+      "files": [
+        "frontend/src/services/binance/corsConfig.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-35"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-rewrite-frontend-src-hooks-usecredentials-ts-to-its-version-2-state-the-test-connection-flow-must-call-getaccountinfo-from-binanceaccountservice-ts-which-calls-binance-directly-no-proxy-remove-all-references-to-cors-proxy-tryproxies-cors-proxy-list-and-multi-proxy-error-messages-on-success-display-the-account-balance-on-failure-display-a-simple-error-message-such-as-connection-failed-check-your-api-credentials-and-network-connection",
+      "featureTitle": "Rewrite `frontend/src/hooks/useCredentials.ts` to its Version 2 state: the 'Test Connection' flow must call `getAccountInfo` from `binanceAccountService.ts` (which calls Binance directly, no proxy). Remove all references to CORS proxy, `tryProxies`, `CORS_PROXY_LIST`, and multi-proxy error messages. On success, display the account balance. On failure, display a simple error message such as 'Connection failed — check your API credentials and network connection.'",
+      "files": [
+        "frontend/src/hooks/useCredentials.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-36"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-rewrite-frontend-src-pages-settings-tsx-to-its-version-2-state-remove-all-ui-text-notices-or-error-messages-referencing-cors-proxies-corsproxy-io-multiple-proxies-or-proxy-availability-the-settings-page-must-show-only-the-binance-api-key-secret-credential-inputs-the-test-connection-button-and-the-global-live-trading-toggle-with-no-proxy-related-ui-elements",
+      "featureTitle": "Rewrite `frontend/src/pages/Settings.tsx` to its Version 2 state: remove all UI text, notices, or error messages referencing CORS proxies, corsproxy.io, multiple proxies, or proxy availability. The Settings page must show only the Binance API Key/Secret credential inputs, the 'Test Connection' button, and the global Live Trading toggle — with no proxy-related UI elements.",
+      "files": [
         "frontend/src/pages/Settings.tsx"
       ],
       "components": [
@@ -16,7 +87,79 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-20"
+        "REQ-37"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-delete-frontend-src-services-ai-pairscoringengine-ts-entirely-this-file-must-not-exist-in-the-version-2-state-remove-all-imports-of-this-file-from-any-other-module-including-aitradeselection-ts",
+      "featureTitle": "Delete `frontend/src/services/ai/pairScoringEngine.ts` entirely. This file must not exist in the Version 2 state. Remove all imports of this file from any other module, including `aiTradeSelection.ts`.",
+      "files": [
+        "frontend/src/services/ai/pairScoringEngine.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-38"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-rewrite-frontend-src-services-ai-aitradeselection-ts-to-its-version-2-state-the-function-must-accept-a-symbol-parameter-not-auto-select-it-fetch-kline-data-for-that-symbol-and-apply-smc-logic-bos-fvg-order-blocks-to-generate-a-trade-setup-with-entry-direction-long-short-tp1-tp2-tp3-and-stop-loss-remove-all-calls-to-scoresymbolsformodality-pairscoringengine-or-any-auto-pair-selection-logic",
+      "featureTitle": "Rewrite `frontend/src/services/ai/aiTradeSelection.ts` to its Version 2 state: the function must accept a `symbol` parameter (not auto-select it), fetch kline data for that symbol, and apply SMC logic (BOS, FVG, Order Blocks) to generate a trade setup with entry, direction (LONG/SHORT), TP1/TP2/TP3, and Stop Loss. Remove all calls to `scoreSymbolsForModality`, `pairScoringEngine`, or any auto-pair-selection logic.",
+      "files": [
+        "frontend/src/services/ai/aiTradeSelection.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-39"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-rewrite-frontend-src-components-trading-modalitycard-tsx-to-its-version-2-state-remove-the-pair-selection-rationale-tooltip-expandable-section-and-the-animated-scanning-market-status-indicator-when-no-active-trade-exists-show-a-standard-empty-state-e-g-no-active-trade-the-card-must-display-modality-name-symbol-direction-entry-price-current-price-unrealized-p-l-tp1-tp2-tp3-and-sl-levels-with-progress-indicators-time-in-trade-and-live-simulated-toggle-exactly-as-in-version-2",
+      "featureTitle": "Rewrite `frontend/src/components/trading/ModalityCard.tsx` to its Version 2 state: remove the 'Pair Selection Rationale' tooltip/expandable section and the animated 'Scanning market...' status indicator. When no active trade exists, show a standard empty state (e.g., 'No active trade'). The card must display modality name, symbol, direction, entry price, current price, unrealized P&L, TP1/TP2/TP3 and SL levels with progress indicators, time in trade, and Live/Simulated toggle — exactly as in Version 2.",
+      "files": [
+        "frontend/src/components/trading/ModalityCard.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-40"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-rewrite-frontend-src-pages-dashboard-tsx-to-its-version-2-state-remove-the-scanning-market-animated-indicator-remove-any-ai-auto-pair-selection-ui-and-restore-the-version-2-dashboard-layout-with-4-modality-trade-cards-in-a-grid-imported-binance-positions-below-the-cards-and-a-candlestick-line-chart-per-active-trade-the-symbol-used-in-each-modality-card-must-come-from-the-active-trade-data-not-auto-selected-by-pairscoringengine",
+      "featureTitle": "Rewrite `frontend/src/pages/Dashboard.tsx` to its Version 2 state: remove the 'Scanning market...' animated indicator, remove any AI auto-pair-selection UI, and restore the Version 2 dashboard layout with 4 modality trade cards in a grid, imported Binance positions below the cards, and a candlestick/line chart per active trade. The symbol used in each modality card must come from the active trade data (not auto-selected by pairScoringEngine).",
+      "files": [
+        "frontend/src/pages/Dashboard.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-41"
       ],
       "confidence": "high"
     }

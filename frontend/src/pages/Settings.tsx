@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Settings as SettingsIcon,
   Eye,
@@ -14,11 +13,8 @@ import {
   Loader2,
   Shield,
   Zap,
-  AlertTriangle,
-  Globe,
   Wallet,
 } from 'lucide-react';
-import { CORS_PROXY_URL } from '../services/binance/corsConfig';
 
 export function Settings() {
   const {
@@ -50,39 +46,6 @@ export function Settings() {
         <SettingsIcon className="w-5 h-5 text-muted-foreground" />
         <h1 className="text-lg font-bold">Settings</h1>
       </div>
-
-      {/* CORS Proxy Notice — TEMPORARY */}
-      {CORS_PROXY_URL && (
-        <Alert className="border-warning/40 bg-warning/5">
-          <div className="flex items-start gap-3">
-            <Globe className="w-4 h-4 text-warning mt-0.5 shrink-0" />
-            <div className="space-y-1 flex-1">
-              <AlertTitle className="text-warning text-sm font-semibold flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                Proxy CORS Público Ativo (Solução Temporária)
-              </AlertTitle>
-              <AlertDescription className="text-xs text-muted-foreground space-y-1.5">
-                <p>
-                  As chamadas à API da Binance estão sendo roteadas através de{' '}
-                  <span className="font-mono text-warning/80 bg-warning/10 px-1 rounded">
-                    corsproxy.io
-                  </span>{' '}
-                  para contornar as restrições de CORS do browser.
-                </p>
-                <p>
-                  <strong className="text-foreground/70">Importante:</strong> A assinatura HMAC-SHA256
-                  continua sendo gerada localmente no seu browser. Apenas a requisição já assinada
-                  trafega pelo proxy — suas credenciais nunca são enviadas como valores isolados.
-                </p>
-                <p className="text-warning/70 font-medium">
-                  ⚠️ Esta não é uma solução permanente segura. Mantenha o modo Simulado ativo até
-                  que uma solução de relay segura seja implementada.
-                </p>
-              </AlertDescription>
-            </div>
-          </div>
-        </Alert>
-      )}
 
       {/* API Credentials */}
       <div className="bg-card border border-border rounded-lg p-5 space-y-4">
@@ -171,7 +134,6 @@ export function Settings() {
                 : 'border-loss/30 bg-loss/10'
             }`}
           >
-            {/* Main status row */}
             <div
               className={`flex items-start gap-2 p-3 ${
                 testResult.success ? 'text-profit' : 'text-loss'
@@ -185,7 +147,6 @@ export function Settings() {
               <span className="leading-relaxed">{testResult.message}</span>
             </div>
 
-            {/* Balance highlight on success */}
             {testResult.success && testResult.balance && (
               <div className="flex items-center gap-2 px-3 pb-3 pt-0">
                 <Wallet className="w-3.5 h-3.5 text-profit/70 shrink-0" />
@@ -193,15 +154,6 @@ export function Settings() {
                   ${testResult.balance} USDT
                 </span>
                 <span className="text-muted-foreground text-xs">available in Futures wallet</span>
-              </div>
-            )}
-
-            {/* Hint for network errors */}
-            {!testResult.success && testResult.message.includes('CORS proxy') && (
-              <div className="px-3 pb-3 text-muted-foreground text-xs leading-relaxed">
-                💡 Tip: corsproxy.io may be temporarily unavailable. Wait 10–30 seconds and try again.
-                If the problem persists, check{' '}
-                <span className="font-mono text-foreground/60">corsproxy.io</span> status.
               </div>
             )}
           </div>
@@ -261,11 +213,9 @@ export function Settings() {
       <div className="bg-muted/20 border border-border/50 rounded-lg p-4 text-xs text-muted-foreground space-y-1">
         <div className="font-medium text-foreground/70">About CollieTrader</div>
         <p>
-          All data is stored locally in your browser. API requests to Binance are currently routed
-          through a public CORS proxy (corsproxy.io) as a temporary measure. HMAC-SHA256 signatures
-          are always generated client-side.
+          All data is stored locally in your browser. API requests use HMAC-SHA256 signatures
+          generated entirely in your browser.
         </p>
-        <p>API requests use HMAC-SHA256 signatures with a 15-second timeout.</p>
       </div>
     </div>
   );

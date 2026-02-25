@@ -7,12 +7,10 @@ function parseErrorMessage(error: unknown): string {
 
   const msg = error.message;
 
-  // Timeout / abort
   if (error.name === 'AbortError' || msg.includes('timeout') || msg.includes('Timeout')) {
-    return 'Request timed out — the proxy or Binance may be slow, try again';
+    return 'Request timed out — check your network connection and try again';
   }
 
-  // Network-level failure (proxy unreachable, CORS preflight blocked, etc.)
   if (
     msg.includes('Failed to fetch') ||
     msg.includes('NetworkError') ||
@@ -20,10 +18,9 @@ function parseErrorMessage(error: unknown): string {
     msg.includes('Load failed') ||
     msg.includes('fetch')
   ) {
-    return 'Network error — could not reach the CORS proxy (corsproxy.io). Check your internet connection and try again in a few seconds.';
+    return 'Connection failed — check your API credentials and network connection.';
   }
 
-  // Binance API-level errors
   if (msg.includes('Invalid API-key') || msg.includes('API-key') || msg.includes('apiKey')) {
     return 'Invalid API key — double-check your Binance API key and make sure it has Futures permissions';
   }
@@ -49,10 +46,9 @@ function parseErrorMessage(error: unknown): string {
   }
 
   if (msg.includes('503') || msg.includes('502') || msg.includes('504')) {
-    return 'Proxy or Binance server error — try again in a few seconds';
+    return 'Binance server error — try again in a few seconds';
   }
 
-  // Return the raw message if it's meaningful
   if (msg && msg !== 'undefined' && msg.length < 200) {
     return msg;
   }
@@ -82,12 +78,10 @@ export function useCredentials() {
     setTestResult(null);
 
     try {
-      // Persist credentials so authenticatedFetch picks them up
       saveCredentials(apiKey, apiSecret);
 
       const account = await getAccount();
 
-      // Extract USDT balance — prefer the dedicated asset entry, fall back to totalWalletBalance
       const usdtAsset = account.assets?.find(
         (a: { asset: string; walletBalance: string }) => a.asset === 'USDT'
       );
