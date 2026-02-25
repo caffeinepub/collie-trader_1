@@ -45,6 +45,7 @@ export interface Trade {
   tp3Hit: boolean;
   interval: string;
   entryReason?: string;
+  topFactors?: string[]; // Top 3 scoring factors from pairScoringEngine
 }
 
 export interface TradeSetup {
@@ -59,6 +60,7 @@ export interface TradeSetup {
   interval: string;
   entryReason: string;
   rrRatio: number;
+  topFactors?: string[]; // Top 3 human-readable scoring factors
 }
 
 export interface ClosedTrade extends Trade {

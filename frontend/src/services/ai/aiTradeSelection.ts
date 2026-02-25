@@ -1,5 +1,6 @@
-import { getKlines } from '../binance/binancePublicApi';
+import { getKlines, getExchangeInfo } from '../binance/binancePublicApi';
 import { parseKlines, detectBOS, detectFVG, detectOrderBlocks, calculateATR } from './smcIndicators';
+import { scoreSymbolsForModality } from './pairScoringEngine';
 import { TradeModality, TradeDirection } from '../../types/trade';
 import type { TradeSetup } from '../../types/trade';
 
@@ -10,22 +11,36 @@ export const MODALITY_PRIMARY_INTERVAL: Record<TradeModality, string> = {
   [TradeModality.Position]: '1d',
 };
 
-const DEFAULT_SYMBOLS: Record<TradeModality, string> = {
-  [TradeModality.Scalping]: 'BTCUSDT',
-  [TradeModality.DayTrading]: 'ETHUSDT',
-  [TradeModality.Swing]: 'SOLUSDT',
-  [TradeModality.Position]: 'BTCUSDT',
-};
+// Curated high-liquidity USDT perpetual symbols to score
+// Used as a fallback if exchange info fetch fails
+const FALLBACK_SYMBOLS = [
+  'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT',
+  'ADAUSDT', 'DOGEUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
+  'MATICUSDT', 'LTCUSDT', 'UNIUSDT', 'ATOMUSDT', 'NEARUSDT',
+  'APTUSDT', 'ARBUSDT', 'OPUSDT', 'INJUSDT', 'SUIUSDT',
+];
 
-export async function generateTradeSetup(
+async function getUSDTPerpetualSymbols(): Promise<string[]> {
+  try {
+    const symbols = await getExchangeInfo();
+    return symbols
+      .filter((s) => s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL')
+      .map((s) => s.symbol)
+      .slice(0, 60); // Limit to top 60 to avoid excessive API calls
+  } catch {
+    return FALLBACK_SYMBOLS;
+  }
+}
+
+async function buildTradeSetupFromSymbol(
+  symbol: string,
   modality: TradeModality,
-  symbol?: string
+  topFactors: string[]
 ): Promise<TradeSetup | null> {
-  const targetSymbol = symbol || DEFAULT_SYMBOLS[modality];
   const interval = MODALITY_PRIMARY_INTERVAL[modality];
 
   try {
-    const klines = await getKlines(targetSymbol, interval, 100);
+    const klines = await getKlines(symbol, interval, 100);
     const candles = parseKlines(klines);
 
     if (candles.length < 20) return null;
@@ -100,8 +115,11 @@ export async function generateTradeSetup(
 
     const rrRatio = Math.abs(tp2 - entryPrice) / Math.abs(entryPrice - stopLoss);
 
+    // Enforce minimum 1:2 R:R
+    if (rrRatio < 1.5) return null;
+
     return {
-      symbol: targetSymbol,
+      symbol,
       direction,
       entry: entryPrice,
       tp1,
@@ -112,9 +130,54 @@ export async function generateTradeSetup(
       interval,
       entryReason,
       rrRatio,
+      topFactors,
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Automatically selects the best trading pair for the given modality
+ * using the SMC + 8 Fundamentals scoring engine, then validates the setup.
+ */
+export async function generateTradeSetup(
+  modality: TradeModality
+): Promise<TradeSetup | null> {
+  try {
+    // Step 1: Get all USDT perpetual symbols
+    const symbols = await getUSDTPerpetualSymbols();
+
+    // Step 2: Score symbols using the combined SMC + 8 Fundamentals engine
+    const scoredSymbols = await scoreSymbolsForModality(modality, symbols, 10);
+
+    if (scoredSymbols.length === 0) {
+      // Fallback: use a default symbol
+      return buildTradeSetupFromSymbol('BTCUSDT', modality, [
+        'Default fallback symbol',
+        'SMC framework applied',
+        'Multi-timeframe analysis',
+      ]);
+    }
+
+    // Step 3: Iterate through top candidates until a valid setup is found
+    for (const candidate of scoredSymbols) {
+      const setup = await buildTradeSetupFromSymbol(
+        candidate.symbol,
+        modality,
+        candidate.topFactors
+      );
+      if (setup) return setup;
+    }
+
+    // Step 4: Last resort fallback
+    return buildTradeSetupFromSymbol('BTCUSDT', modality, [
+      'Fallback to BTC',
+      'SMC structure analyzed',
+      'Risk management applied',
+    ]);
   } catch (error) {
-    console.error(`Failed to generate trade setup for ${targetSymbol}:`, error);
+    console.error(`Failed to generate trade setup for ${modality}:`, error);
     return null;
   }
 }

@@ -1,8 +1,10 @@
-import { Clock, TrendingUp, TrendingDown, Zap, X } from 'lucide-react';
+import { useState } from 'react';
+import { Clock, TrendingUp, TrendingDown, Zap, X, Brain, ChevronDown, ChevronUp, Scan } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import type { Trade } from '../../types/trade';
 import { TradeModality, TradeDirection } from '../../types/trade';
 import { calculatePnL } from '../../services/trading/tradeLifecycleManager';
@@ -33,6 +35,13 @@ const MODALITY_COLORS: Record<TradeModality, string> = {
   [TradeModality.Position]: 'text-orange-400',
 };
 
+const MODALITY_SCAN_COLORS: Record<TradeModality, string> = {
+  [TradeModality.Scalping]: 'bg-yellow-400',
+  [TradeModality.DayTrading]: 'bg-blue-400',
+  [TradeModality.Swing]: 'bg-purple-400',
+  [TradeModality.Position]: 'bg-orange-400',
+};
+
 function formatDuration(ms: number): string {
   const minutes = Math.floor(ms / 60000);
   const hours = Math.floor(minutes / 60);
@@ -59,6 +68,8 @@ export function ModalityCard({
   onClose,
   onGenerate,
 }: ModalityCardProps) {
+  const [rationaleOpen, setRationaleOpen] = useState(false);
+
   const isLong = trade?.direction === TradeDirection.LONG;
   const pnlData = trade && currentPrice ? calculatePnL(trade, currentPrice) : null;
   const isProfitable = (pnlData?.pnl || 0) >= 0;
@@ -71,6 +82,7 @@ export function ModalityCard({
   };
 
   const duration = trade ? Date.now() - trade.openTime : 0;
+  const dotColor = MODALITY_SCAN_COLORS[modality];
 
   return (
     <div
@@ -79,6 +91,8 @@ export function ModalityCard({
           ? isProfitable
             ? 'border-profit/30 shadow-profit-glow'
             : 'border-loss/30 shadow-loss-glow'
+          : isGenerating
+          ? 'border-primary/40 shadow-sm'
           : 'border-border'
       }`}
     >
@@ -103,6 +117,12 @@ export function ModalityCard({
                 <TrendingDown className="w-3 h-3 mr-1" />
               )}
               {trade.direction}
+            </Badge>
+          )}
+          {isGenerating && !trade && (
+            <Badge variant="outline" className="text-xs px-1.5 py-0 h-5 border-primary/40 text-primary bg-primary/5">
+              <Scan className="w-3 h-3 mr-1 animate-pulse" />
+              Scanning
             </Badge>
           )}
         </div>
@@ -182,6 +202,33 @@ export function ModalityCard({
             ))}
           </div>
 
+          {/* Pair Selection Rationale */}
+          {trade.topFactors && trade.topFactors.length > 0 && (
+            <Collapsible open={rationaleOpen} onOpenChange={setRationaleOpen}>
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+                  <Brain className="w-3 h-3 text-primary/70" />
+                  <span className="font-medium">Pair Selection Rationale</span>
+                  {rationaleOpen ? (
+                    <ChevronUp className="w-3 h-3 ml-auto" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3 ml-auto" />
+                  )}
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-1.5 space-y-1 pl-4 border-l border-primary/20">
+                  {trade.topFactors.slice(0, 3).map((factor, i) => (
+                    <div key={i} className="flex items-start gap-1.5">
+                      <span className="text-primary/60 text-xs mt-0.5">#{i + 1}</span>
+                      <span className="text-xs text-muted-foreground leading-tight">{factor}</span>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
           {/* Footer */}
           <div className="flex items-center justify-between pt-1 border-t border-border">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -205,6 +252,39 @@ export function ModalityCard({
             </div>
           </div>
         </>
+      ) : isGenerating ? (
+        /* Scanning State */
+        <div className="flex flex-col items-center justify-center py-6 gap-3">
+          <div className="relative flex items-center justify-center">
+            {/* Animated scanning rings */}
+            <div className={`absolute w-12 h-12 rounded-full ${dotColor} opacity-10 animate-ping`} />
+            <div className={`absolute w-8 h-8 rounded-full ${dotColor} opacity-20 animate-ping`} style={{ animationDelay: '0.3s' }} />
+            <div className={`w-5 h-5 rounded-full ${dotColor} opacity-80 flex items-center justify-center`}>
+              <Scan className="w-3 h-3 text-background" />
+            </div>
+          </div>
+          <div className="text-center space-y-1">
+            <div className="text-xs font-medium text-foreground/80 animate-pulse">
+              Scanning market...
+            </div>
+            <div className="text-xs text-muted-foreground">
+              SMC + 8 Fundamentals analysis
+            </div>
+          </div>
+          {/* Animated dots */}
+          <div className="flex gap-1">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full ${dotColor} opacity-60`}
+                style={{
+                  animation: 'bounce 1.2s infinite',
+                  animationDelay: `${i * 0.2}s`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
       ) : (
         /* Empty State */
         <div className="flex flex-col items-center justify-center py-6 gap-3">
@@ -217,7 +297,7 @@ export function ModalityCard({
             className="text-xs h-7 border-primary/30 text-primary hover:bg-primary/10"
           >
             <Zap className="w-3 h-3 mr-1" />
-            {isGenerating ? 'Generating...' : 'Generate Trade'}
+            Generate Trade
           </Button>
         </div>
       )}

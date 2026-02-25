@@ -10,13 +10,6 @@ function generateId(): string {
   return `trade_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-const DEFAULT_SYMBOLS: Record<TradeModality, string> = {
-  [TradeModality.Scalping]: 'BTCUSDT',
-  [TradeModality.DayTrading]: 'ETHUSDT',
-  [TradeModality.Swing]: 'SOLUSDT',
-  [TradeModality.Position]: 'BTCUSDT',
-};
-
 export function useTradeLifecycle() {
   const [trades, setTrades] = useState<Record<TradeModality, Trade | null>>(loadActiveTrades);
   const [generating, setGenerating] = useState<Record<TradeModality, boolean>>({
@@ -74,8 +67,8 @@ export function useTradeLifecycle() {
   const generateNewTrade = useCallback(async (modality: TradeModality) => {
     setGenerating((prev) => ({ ...prev, [modality]: true }));
     try {
-      const symbol = DEFAULT_SYMBOLS[modality];
-      const setup = await generateTradeSetup(modality, symbol);
+      // AI auto-selects the best pair using SMC + 8 Fundamentals scoring
+      const setup = await generateTradeSetup(modality);
       if (!setup) return;
 
       const newTrade: Trade = {
@@ -98,6 +91,7 @@ export function useTradeLifecycle() {
         tp3Hit: false,
         interval: setup.interval,
         entryReason: setup.entryReason,
+        topFactors: setup.topFactors,
       };
 
       setTrades((prev) => ({ ...prev, [modality]: newTrade }));
@@ -170,6 +164,7 @@ export function useTradeLifecycle() {
         tp2Hit: false,
         tp3Hit: false,
         isLive,
+        topFactors: ['Reversal trade', 'Direction flipped', 'ATR-based levels'],
       };
 
       await executeTradeOpen(newTrade, isLive);

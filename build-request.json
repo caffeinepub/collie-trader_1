@@ -1,209 +1,46 @@
 {
   "kind": "build_request",
-  "title": "Revert project to exact Version 2 state",
+  "title": "Fix Position Recovery Refresh Button — Wire to Binance API + positionRecoveryEngine",
   "projectName": "Collie Trader",
-  "priority": "high",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-32",
-      "text": "Rewrite `frontend/src/services/binance/binanceAuth.ts` to its Version 2 state: generate HMAC-SHA256 signatures client-side, attach `X-MBX-APIKEY` header, and perform authenticated fetches with a 15-second timeout — with NO CORS proxy, no `CORS_PROXY_URL` import, no `tryProxies`, and no `CORS_PROXY_LIST`. All Binance Futures API URLs must be called directly (e.g., `https://fapi.binance.com/...`) without any proxy prefix.",
+      "id": "REQ-46",
+      "text": "In `frontend/src/pages/PositionRecovery.tsx`, wire the Refresh button to a real async action that: (1) calls `getPositionRisk()` from `binanceAccountService.ts` to fetch live position data from `GET https://fapi.binance.com/fapi/v2/positionRisk`; (2) re-executes the `positionRecoveryEngine` logic against the freshly fetched positions to detect those with unrealized loss exceeding 20%; (3) updates the displayed list of deeply negative positions with the new results; and (4) shows a loading spinner or disabled state on the Refresh button while the operation is in progress, restoring to normal after completion or on error.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-20"
+          "msg-recent-1",
+          "msg-recent-2",
+          "msg-recent-3"
         ],
         "quotes": [
-          "Tudo deve ser preservado .. exatamente como foi deployada a versão 2"
+          "Verifique se ao clicar no botao 'refresh' uma ordem realmente é enviada a area correspondente",
+          "Rebuscar as posições da Binance via GET /fapi/v2/positionRisk",
+          "Re-executar o positionRecoveryEngine para detectar posições em perda significativa",
+          "Mostrar um spinner/loading durante o processo"
         ]
       },
       "acceptanceCriteria": [
-        "binanceAuth.ts contains no import or reference to corsConfig.ts, CORS_PROXY_URL, tryProxies, or CORS_PROXY_LIST",
-        "Authenticated fetch calls target fapi.binance.com directly without any proxy prefix",
-        "HMAC-SHA256 signature is still generated in the browser before each request",
-        "15-second timeout is applied to all authenticated fetches"
-      ]
-    },
-    {
-      "id": "REQ-33",
-      "text": "Rewrite `frontend/src/services/binance/binancePublicApi.ts` to its Version 2 state: all public Binance Futures API calls (`/fapi/v1/exchangeInfo`, `/fapi/v1/ticker/price`, `/fapi/v1/klines`, `/fapi/v1/leverageBracket`) must call `https://fapi.binance.com/...` directly with NO CORS proxy, no `CORS_PROXY_URL` import, no `tryProxies`, and no `CORS_PROXY_LIST`.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-20"
-        ],
-        "quotes": [
-          "Tudo deve ser preservado .. exatamente como foi deployada a versão 2"
-        ]
-      },
-      "acceptanceCriteria": [
-        "binancePublicApi.ts contains no import or reference to corsConfig.ts, CORS_PROXY_URL, tryProxies, or CORS_PROXY_LIST",
-        "All public API calls target fapi.binance.com directly without any proxy prefix"
-      ]
-    },
-    {
-      "id": "REQ-34",
-      "text": "Rewrite `frontend/src/services/binance/binanceAccountService.ts` to its Version 2 state: all authenticated endpoints (`GET /fapi/v2/account`, `GET /fapi/v2/positionRisk`, `POST/DELETE /fapi/v1/order`) must use `authenticatedFetch` from `binanceAuth.ts` and call `https://fapi.binance.com/...` directly with NO CORS proxy, no `CORS_PROXY_URL` import, and no `tryProxies`.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-20"
-        ],
-        "quotes": [
-          "Tudo deve ser preservado .. exatamente como foi deployada a versão 2"
-        ]
-      },
-      "acceptanceCriteria": [
-        "binanceAccountService.ts contains no import or reference to corsConfig.ts, CORS_PROXY_URL, tryProxies, or CORS_PROXY_LIST",
-        "All authenticated API calls target fapi.binance.com directly without any proxy prefix"
-      ]
-    },
-    {
-      "id": "REQ-35",
-      "text": "Delete the file `frontend/src/services/binance/corsConfig.ts` entirely. This file must not exist in the Version 2 state. Remove all imports of this file from any other module.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-20"
-        ],
-        "quotes": [
-          "Tudo deve ser preservado .. exatamente como foi deployada a versão 2"
-        ]
-      },
-      "acceptanceCriteria": [
-        "corsConfig.ts does not exist in the codebase",
-        "No other file imports from corsConfig.ts"
-      ]
-    },
-    {
-      "id": "REQ-36",
-      "text": "Rewrite `frontend/src/hooks/useCredentials.ts` to its Version 2 state: the 'Test Connection' flow must call `getAccountInfo` from `binanceAccountService.ts` (which calls Binance directly, no proxy). Remove all references to CORS proxy, `tryProxies`, `CORS_PROXY_LIST`, and multi-proxy error messages. On success, display the account balance. On failure, display a simple error message such as 'Connection failed — check your API credentials and network connection.'",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-20"
-        ],
-        "quotes": [
-          "Tudo deve ser preservado .. exatamente como foi deployada a versão 2"
-        ]
-      },
-      "acceptanceCriteria": [
-        "useCredentials.ts contains no import or reference to corsConfig.ts, CORS_PROXY_URL, tryProxies, or CORS_PROXY_LIST",
-        "Test Connection calls getAccountInfo from binanceAccountService.ts",
-        "No error message references multiple proxies or proxy exhaustion",
-        "On success, account balance is displayed",
-        "On failure, a simple error message is shown"
-      ]
-    },
-    {
-      "id": "REQ-37",
-      "text": "Rewrite `frontend/src/pages/Settings.tsx` to its Version 2 state: remove all UI text, notices, or error messages referencing CORS proxies, corsproxy.io, multiple proxies, or proxy availability. The Settings page must show only the Binance API Key/Secret credential inputs, the 'Test Connection' button, and the global Live Trading toggle — with no proxy-related UI elements.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-20"
-        ],
-        "quotes": [
-          "Tudo deve ser preservado .. exatamente como foi deployada a versão 2"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Settings.tsx contains no text or UI elements referencing CORS proxy, corsproxy.io, or proxy availability",
-        "API Key and Secret inputs are present",
-        "Test Connection button is present and functional",
-        "Global Live Trading toggle is present"
-      ]
-    },
-    {
-      "id": "REQ-38",
-      "text": "Delete `frontend/src/services/ai/pairScoringEngine.ts` entirely. This file must not exist in the Version 2 state. Remove all imports of this file from any other module, including `aiTradeSelection.ts`.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-20"
-        ],
-        "quotes": [
-          "Tudo deve ser preservado .. exatamente como foi deployada a versão 2"
-        ]
-      },
-      "acceptanceCriteria": [
-        "pairScoringEngine.ts does not exist in the codebase",
-        "No other file imports from pairScoringEngine.ts",
-        "aiTradeSelection.ts does not reference scoreSymbolsForModality or pairScoringEngine"
-      ]
-    },
-    {
-      "id": "REQ-39",
-      "text": "Rewrite `frontend/src/services/ai/aiTradeSelection.ts` to its Version 2 state: the function must accept a `symbol` parameter (not auto-select it), fetch kline data for that symbol, and apply SMC logic (BOS, FVG, Order Blocks) to generate a trade setup with entry, direction (LONG/SHORT), TP1/TP2/TP3, and Stop Loss. Remove all calls to `scoreSymbolsForModality`, `pairScoringEngine`, or any auto-pair-selection logic.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-20"
-        ],
-        "quotes": [
-          "Tudo deve ser preservado .. exatamente como foi deployada a versão 2"
-        ]
-      },
-      "acceptanceCriteria": [
-        "aiTradeSelection.ts does not import or reference pairScoringEngine.ts",
-        "generateTradeSetup accepts a symbol parameter",
-        "SMC analysis (BOS, FVG, Order Blocks) is applied to generate trade setups",
-        "Output includes entry price, direction, TP1/TP2/TP3, and SL"
-      ]
-    },
-    {
-      "id": "REQ-40",
-      "text": "Rewrite `frontend/src/components/trading/ModalityCard.tsx` to its Version 2 state: remove the 'Pair Selection Rationale' tooltip/expandable section and the animated 'Scanning market...' status indicator. When no active trade exists, show a standard empty state (e.g., 'No active trade'). The card must display modality name, symbol, direction, entry price, current price, unrealized P&L, TP1/TP2/TP3 and SL levels with progress indicators, time in trade, and Live/Simulated toggle — exactly as in Version 2.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-20"
-        ],
-        "quotes": [
-          "Tudo deve ser preservado .. exatamente como foi deployada a versão 2"
-        ]
-      },
-      "acceptanceCriteria": [
-        "ModalityCard.tsx contains no 'Pair Selection Rationale' tooltip or expandable section",
-        "ModalityCard.tsx contains no 'Scanning market...' animated indicator",
-        "Empty state shows a simple 'No active trade' message",
-        "Card displays all Version 2 trade data fields"
-      ]
-    },
-    {
-      "id": "REQ-41",
-      "text": "Rewrite `frontend/src/pages/Dashboard.tsx` to its Version 2 state: remove the 'Scanning market...' animated indicator, remove any AI auto-pair-selection UI, and restore the Version 2 dashboard layout with 4 modality trade cards in a grid, imported Binance positions below the cards, and a candlestick/line chart per active trade. The symbol used in each modality card must come from the active trade data (not auto-selected by pairScoringEngine).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-20"
-        ],
-        "quotes": [
-          "Tudo deve ser preservado .. exatamente como foi deployada a versão 2"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Dashboard.tsx contains no reference to pairScoringEngine or scoreSymbolsForModality",
-        "No 'Scanning market...' animated indicator is rendered",
-        "4 modality cards are displayed in a grid simultaneously",
-        "Imported Binance positions are displayed below the modality cards",
-        "A chart per active trade is shown using kline data"
+        "Clicking the Refresh button triggers a real HTTP call to `GET /fapi/v2/positionRisk` via `getPositionRisk()` from `binanceAccountService.ts`.",
+        "While the fetch is in progress, the Refresh button shows a loading spinner and is disabled to prevent duplicate requests.",
+        "After the fetch completes, `positionRecoveryEngine` is re-executed with the new position data and the displayed list of recovery candidates is updated.",
+        "Positions with unrealized loss greater than 20% appear in the list after refresh.",
+        "If the fetch fails (e.g., no credentials, network error), an error message is shown and the Refresh button returns to its normal state.",
+        "If credentials are not configured (no API key/secret in localStorage), the Refresh button either shows a warning or is disabled with a tooltip explaining that credentials are required."
       ]
     }
   ],
   "constraints": [
-    "Do not introduce any new CORS proxy logic, proxy configuration files, or multi-proxy fallback mechanisms",
-    "Do not reference or import pairScoringEngine.ts from any file",
-    "Do not add any 'Scanning market...' UI or 'Pair Selection Rationale' UI elements",
-    "All Binance API calls must target fapi.binance.com directly without any proxy prefix",
-    "Preserve all other Version 2 features exactly as-is (trade lifecycle, SMC algorithm, statistics, recovery, settings credentials UI, dark theme)"
+    "Do not modify files listed under frontend.immutablePaths.",
+    "Credentials must never be sent to any backend — all Binance API calls remain client-side.",
+    "All authenticated Binance calls must use `authenticatedFetch` from `binanceAuth.ts` (no direct fetch to Binance URLs bypassing it)."
   ],
   "nonGoals": [
-    "Adding any new features beyond restoring the exact Version 2 state",
-    "Keeping any CORS proxy logic (corsConfig.ts, CORS_PROXY_URL, tryProxies, CORS_PROXY_LIST)",
-    "Keeping pairScoringEngine.ts or automatic pair selection via scoring engine",
-    "Keeping the 'Pair Selection Rationale' tooltip",
-    "Keeping the 'Scanning market...' animated status indicator",
-    "Making backend changes"
+    "Do not change the recovery strategy logic inside `positionRecoveryEngine.ts`.",
+    "Do not change the detection threshold (20% loss) unless explicitly requested.",
+    "Do not modify any other tabs or pages.",
+    "Do not add new recovery strategy types."
   ],
   "imageRequirements": {
     "required": [],

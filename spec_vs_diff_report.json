@@ -1,49 +1,14 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T19:40:57.650Z",
-  "summary": "The diff implements most of the Version 2 revert requirements. binanceAuth.ts, binancePublicApi.ts, useCredentials.ts, Settings.tsx, aiTradeSelection.ts, ModalityCard.tsx, and Dashboard.tsx are all rewritten. corsConfig.ts is listed as modified (not removed), and pairScoringEngine.ts is listed as modified (not removed), though the diff summary notes imply their content may have been cleared. binanceAccountService.ts changes are only evidenced via the frontend-file-summaries.txt description rather than direct file content. The diff is otherwise largely consistent with requirements.",
-  "missing_requirements": [
-    {
-      "id": "REQ-35",
-      "requirement": "Delete the file frontend/src/services/binance/corsConfig.ts entirely.",
-      "reason": "The file frontend/src/services/binance/corsConfig.ts appears in the MODIFIED FILES list, not in REMOVED FILES. It was not deleted as required — it was modified. The requirement states it must not exist in the codebase.",
-      "evidence": [
-        "frontend/src/services/binance/corsConfig.ts"
-      ]
-    },
-    {
-      "id": "REQ-38",
-      "requirement": "Delete frontend/src/services/ai/pairScoringEngine.ts entirely.",
-      "reason": "The file frontend/src/services/ai/pairScoringEngine.ts appears in the MODIFIED FILES list, not in REMOVED FILES. It was not deleted as required — it was modified. The requirement states it must not exist in the codebase.",
-      "evidence": [
-        "frontend/src/services/ai/pairScoringEngine.ts"
-      ]
-    },
-    {
-      "id": "REQ-34",
-      "requirement": "Rewrite frontend/src/services/binance/binanceAccountService.ts to its Version 2 state with no CORS proxy references.",
-      "reason": "binanceAccountService.ts does not appear in the diff modified or added files list. Its compliance is only inferred from a description in frontend-file-summaries.txt. No direct file content was provided to verify the absence of corsConfig/CORS_PROXY_URL/tryProxies imports or confirm authenticated endpoints call fapi.binance.com directly.",
-      "evidence": [
-        "frontend-file-summaries.txt"
-      ]
-    }
-  ],
+  "generatedAt": "2026-02-25T20:34:41.722Z",
+  "summary": "The diff modifies `frontend/src/pages/PositionRecovery.tsx` to wire the Refresh button to a real async action. The implementation imports `getPositionRisk` from `binanceAccountService.ts`, imports `hasCredentials` from `binanceAuth.ts`, uses `generateRecoveryStrategies` from `positionRecoveryEngine`, adds loading state, credentials checking, error toast handling, and a `positionRiskToTrade` converter. The file summary confirms: loading spinner, credentials warning tooltip, error toast handling, and fetching via `getPositionRisk()` on Refresh. All major acceptance criteria appear to be addressed.",
+  "missing_requirements": [],
   "hallucinated_features": [],
-  "confidence": 0.72,
+  "confidence": 0.88,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/trading/ModalityCard.tsx",
-    "frontend/src/hooks/useCredentials.ts",
-    "frontend/src/hooks/useTradeLifecycle.ts",
-    "frontend/src/pages/Dashboard.tsx",
-    "frontend/src/pages/Settings.tsx",
-    "frontend/src/services/ai/aiTradeSelection.ts",
-    "frontend/src/services/ai/pairScoringEngine.ts",
-    "frontend/src/services/binance/binanceAuth.ts",
-    "frontend/src/services/binance/binancePublicApi.ts",
-    "frontend/src/services/binance/corsConfig.ts",
-    "frontend/src/types/trade.ts",
+    "frontend/src/pages/PositionRecovery.tsx",
     "project_state.json"
   ]
 }
